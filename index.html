@@ -169,7 +169,7 @@
             const [isFullscreen, setIsFullscreen] = useState(false);
             const timerRef = useRef(null);
             
-            // --- Single Player State ---
+            // --- Single Player State (TIME ATTACK & FEVER) ---
             const [activeBatik, setActiveBatik] = useState(BATIKS[0]);
             const [level, setLevel] = useState(1);
             const [grid, setGrid] = useState([]);
@@ -181,6 +181,7 @@
             const [selectedBlock, setSelectedBlock] = useState(null);
             const [inputAnswer, setInputAnswer] = useState('');
             const [feedback, setFeedback] = useState(null);
+            const [powerups, setPowerups] = useState({ bomb: 3, hint: 5 });
             const [floatingTexts, setFloatingTexts] = useState([]);
 
             // State Refs (Mencegah Stale Closure pada Timer/Callback)
