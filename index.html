@@ -62,20 +62,54 @@
         import { createRoot } from 'react-dom/client';
         import * as lucideReact from 'lucide-react';
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-        import { getFirestore, collection, doc, setDoc, onSnapshot, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+        import { getFirestore, collection, doc, setDoc, onSnapshot, serverTimestamp, increment } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
         // Destrukturisasi Ikon
-        const { Play, Users, Trophy, ArrowLeft, Heart, Zap, Lock, School, Clock, Lightbulb, Bomb, Maximize, Minimize, Swords, User, MapPin, Medal, Flame, Map: MapIcon, ChevronRight } = lucideReact;
+        const { Play, Users, Trophy, ArrowLeft, Heart, Zap, Lock, School, Clock, Lightbulb, Bomb, Maximize, Minimize, Swords, User, MapPin, Medal, Flame, Map: MapIcon, ChevronRight, Store, CalendarCheck, CheckCircle2, LogOut } = lucideReact;
 
         // ==========================================
         // 1. DATA & KONFIGURASI
         // ==========================================
 
+        const AVATARS = [
+            { id: 'default', icon: '👤', name: 'Standar', price: 0 },
+            { id: 'owl', icon: '🦉', name: 'Burung Hantu', price: 1000 },
+            { id: 'fox', icon: '🦊', name: 'Rubah Cerdik', price: 2500 },
+            { id: 'tiger', icon: '🐯', name: 'Harimau Berani', price: 4000 },
+            { id: 'panda', icon: '🐧', name: 'Panda Santai', price: 5000 },
+            { id: 'dragon', icon: '🐉', name: 'Naga Emas', price: 10000 },
+        ];
+
+        const QUEST_TEMPLATES = [
+            { id: 'q_solo', type: 'play_solo', target: 2, reward: 500, title: 'Main 2x Mode Solo' },
+            { id: 'q_duel', type: 'play_duel', target: 1, reward: 800, title: 'Main 1x Mode Duel' },
+            { id: 'q_bomb', type: 'use_bomb', target: 1, reward: 300, title: 'Gunakan 1x Bom' },
+            { id: 'q_correct', type: 'answer_correct', target: 20, reward: 1000, title: 'Jawab 20 Soal Benar' },
+        ];
+
         const BATIKS = [
-            { id: 'kawung', name: 'Kawung', price: 0, mathConcept: 'Geometri: Pola Simetris', pattern: 'circles', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 100 },
-            { id: 'megamendung', name: 'Megamendung', price: 2500, mathConcept: 'Kurva & Skala', pattern: 'clouds', bgImage: 'https://images.unsplash.com/photo-1583089851608-592f6c8d76db?auto=format&fit=crop&q=80&w=600', baseScore: 150 },
-            { id: 'parang', name: 'Parang Rusak', price: 5000, mathConcept: 'Garis Sejajar', pattern: 'diagonal', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 200 },
+            // SUMATRA (Level 1)
+            { id: 'siger', islandId: 1, name: 'Mahkota Siger', price: 0, mathConcept: 'Geometri: Simetri Lipat', pattern: 'siger', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 100 },
+            { id: 'durianpecah', islandId: 1, name: 'Durian Pecah', price: 1000, mathConcept: 'Pecahan & Sudut', pattern: 'durian', bgImage: 'https://images.unsplash.com/photo-1583089851608-592f6c8d76db?auto=format&fit=crop&q=80&w=600', baseScore: 150 },
+            { id: 'ikantumbal', islandId: 1, name: 'Ikan Tumbal', price: 3000, mathConcept: 'Translasi Bangun', pattern: 'ikan', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 200 },
+
+            // JAWA (Level 2)
+            { id: 'kawung', islandId: 2, name: 'Kawung', price: 0, mathConcept: 'Pola Lingkaran Berpotongan', pattern: 'circles', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 150 },
+            { id: 'megamendung', islandId: 2, name: 'Megamendung', price: 2000, mathConcept: 'Kurva & Skala Bertingkat', pattern: 'clouds', bgImage: 'https://images.unsplash.com/photo-1583089851608-592f6c8d76db?auto=format&fit=crop&q=80&w=600', baseScore: 200 },
+            { id: 'parang', islandId: 2, name: 'Parang Rusak', price: 4500, mathConcept: 'Garis Sejajar & Gradien', pattern: 'diagonal', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 250 },
+
+            // KALIMANTAN (Level 3)
+            { id: 'batanggaring', islandId: 3, name: 'Batang Garing', price: 0, mathConcept: 'Pohon Faktor (Perkalian)', pattern: 'tree', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 200 },
+            { id: 'mandau', islandId: 3, name: 'Mandau', price: 2500, mathConcept: 'Garis Tegak Lurus', pattern: 'sword', bgImage: 'https://images.unsplash.com/photo-1583089851608-592f6c8d76db?auto=format&fit=crop&q=80&w=600', baseScore: 250 },
+
+            // BALI (Level 4)
+            { id: 'singabarong', islandId: 4, name: 'Singa Barong', price: 0, mathConcept: 'Rotasi Bangun Datar', pattern: 'lion', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 250 },
+            { id: 'ulundanu', islandId: 4, name: 'Ulun Danu', price: 3000, mathConcept: 'Refleksi Sumbu X', pattern: 'temple', bgImage: 'https://images.unsplash.com/photo-1583089851608-592f6c8d76db?auto=format&fit=crop&q=80&w=600', baseScore: 300 },
+
+            // NTT (Level 5)
+            { id: 'kudasumba', islandId: 5, name: 'Kuda Sumba', price: 0, mathConcept: 'Deret Aritmatika', pattern: 'horse', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 300 },
+            { id: 'mamuli', islandId: 5, name: 'Mamuli Rote', price: 4000, mathConcept: 'Geometri Fraktal', pattern: 'jewelry', bgImage: 'https://images.unsplash.com/photo-1583089851608-592f6c8d76db?auto=format&fit=crop&q=80&w=600', baseScore: 350 },
         ];
 
         const ISLANDS = [
@@ -135,7 +169,7 @@
             const [isFullscreen, setIsFullscreen] = useState(false);
             const timerRef = useRef(null);
             
-            // --- Single Player State (TIME ATTACK & FEVER) ---
+            // --- Single Player State ---
             const [activeBatik, setActiveBatik] = useState(BATIKS[0]);
             const [level, setLevel] = useState(1);
             const [grid, setGrid] = useState([]);
@@ -147,8 +181,14 @@
             const [selectedBlock, setSelectedBlock] = useState(null);
             const [inputAnswer, setInputAnswer] = useState('');
             const [feedback, setFeedback] = useState(null);
-            const [powerups, setPowerups] = useState({ bomb: 3, hint: 5 });
             const [floatingTexts, setFloatingTexts] = useState([]);
+
+            // State Refs (Mencegah Stale Closure pada Timer/Callback)
+            const scoreRef = useRef(0);
+            const userDataRef = useRef(userData);
+            
+            useEffect(() => { scoreRef.current = score; }, [score]);
+            useEffect(() => { userDataRef.current = userData; }, [userData]);
 
             // --- Multiplayer (Duel) State ---
             const [mpSetup, setMpSetup] = useState({ p1Name: 'Pemain 1', p2Name: 'Pemain 2', level: 2, timeLimit: 300 });
@@ -160,7 +200,7 @@
 
             // --- Firebase Init ---
             const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'batik-matika-v5';
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'batik-matika-v6';
             
             useEffect(() => {
                 if (!firebaseConfig) { setView('landing'); return; }
@@ -190,14 +230,26 @@
                 const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main');
                 const unsubProfile = onSnapshot(profileRef, (snap) => {
                     if (snap.exists()) {
-                        setUserData(snap.data());
+                        const data = snap.data();
+                        setUserData(data);
+                        checkDailyLogin(data); // Cek Login Harian & Quest
                         setView(v => (v === 'loading' || v === 'login' || v === 'landing') ? 'menu' : v);
                     } else { setView('login'); }
                 });
 
                 const lbRef = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
                 const unsubLb = onSnapshot(lbRef, (snap) => {
-                    const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    const rawData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    
+                    const uniquePlayersMap = new Map();
+                    rawData.forEach(player => {
+                        const key = `${player.name}_${player.school}_${player.province}`.toLowerCase().trim();
+                        if (!uniquePlayersMap.has(key) || uniquePlayersMap.get(key).points < (player.points || 0)) {
+                            uniquePlayersMap.set(key, player);
+                        }
+                    });
+                    
+                    const data = Array.from(uniquePlayersMap.values());
                     data.sort((a, b) => (b.points || 0) - (a.points || 0));
                     setLeaderboardData(data);
                 }, (err) => console.error("Leaderboard Error:", err));
@@ -205,25 +257,135 @@
                 return () => { unsubProfile(); unsubLb(); };
             }, [user]);
 
+            // --- SISTEM DAILY QUESTS & STREAK ---
+            const checkDailyLogin = (data) => {
+                const today = new Date().toDateString();
+                const yesterdayDate = new Date();
+                yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+                const yesterday = yesterdayDate.toDateString();
+
+                let updates = {};
+                let needUpdate = false;
+
+                // Cek Login Streak
+                if (data.lastLoginDate !== today) {
+                    updates.lastLoginDate = today;
+                    if (data.lastLoginDate === yesterday) {
+                        updates.loginStreak = (data.loginStreak || 0) + 1;
+                    } else {
+                        updates.loginStreak = 1;
+                    }
+                    
+                    // Beri bonus streak harian (Contoh: 50 poin * Streak)
+                    const streakBonus = updates.loginStreak * 50;
+                    updates.points = (data.points || 0) + streakBonus;
+                    
+                    alert(`🌟 Hadiah Login Harian!\nStreak: ${updates.loginStreak} Hari\nBonus: +${streakBonus} Poin`);
+                    needUpdate = true;
+                }
+
+                // Cek Quests (Reset tiap hari)
+                if (data.lastQuestDate !== today) {
+                    updates.lastQuestDate = today;
+                    // Reset misi
+                    updates.quests = QUEST_TEMPLATES.map(q => ({ ...q, progress: 0, claimed: false }));
+                    needUpdate = true;
+                }
+
+                if (needUpdate) {
+                    saveUserData(updates);
+                }
+            };
+
+            const updateQuestProgress = (questType, amount = 1) => {
+                const currentData = userDataRef.current;
+                if (!currentData || !currentData.quests) return;
+
+                let hasChanges = false;
+                const newQuests = currentData.quests.map(q => {
+                    if (q.type === questType && !q.claimed && q.progress < q.target) {
+                        hasChanges = true;
+                        return { ...q, progress: Math.min(q.target, q.progress + amount) };
+                    }
+                    return q;
+                });
+
+                if (hasChanges) {
+                    saveUserData({ quests: newQuests });
+                }
+            };
+
+            const claimQuest = (questId) => {
+                const currentData = userDataRef.current;
+                if (!currentData) return;
+                
+                const questIndex = currentData.quests.findIndex(q => q.id === questId);
+                if (questIndex === -1) return;
+
+                const quest = currentData.quests[questIndex];
+                if (quest.progress >= quest.target && !quest.claimed) {
+                    const newQuests = [...currentData.quests];
+                    newQuests[questIndex].claimed = true;
+                    saveUserData({ 
+                        points: (currentData.points || 0) + quest.reward,
+                        quests: newQuests 
+                    });
+                    alert(`🎉 Misi Selesai!\nMendapat +${quest.reward} Poin.`);
+                }
+            };
+
+            // --- Fungsi Sinkronisasi Data ---
             const saveUserData = async (newData) => {
                 if (!user || !firebaseConfig) { setUserData(prev => ({ ...prev, ...newData })); return; }
                 const db = getFirestore();
-                const mergedData = { ...userData, ...newData, updatedAt: serverTimestamp() };
                 
                 try {
                     const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main');
-                    await setDoc(profileRef, mergedData, { merge: true });
+                    await setDoc(profileRef, { ...newData, updatedAt: serverTimestamp() }, { merge: true });
 
-                    const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', user.uid);
-                    await setDoc(publicRef, {
-                        name: mergedData.name || 'Pemain',
-                        school: mergedData.school || 'Sekolah Tidak Diketahui',
-                        province: mergedData.province || '-',
-                        points: mergedData.points || 0,
-                        updatedAt: serverTimestamp()
-                    }, { merge: true });
-
+                    // Sinkron ke Leaderboard
+                    if (newData.name || newData.school || newData.province || newData.points !== undefined || newData.activeAvatar) {
+                        const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', user.uid);
+                        const lbUpdate = {
+                            name: newData.name || userDataRef.current?.name || 'Pemain',
+                            school: newData.school || userDataRef.current?.school || '-',
+                            province: newData.province || userDataRef.current?.province || '-',
+                            unlockedLevel: newData.unlockedLevel || userDataRef.current?.unlockedLevel || 1,
+                            avatar: newData.activeAvatar || userDataRef.current?.activeAvatar || 'default',
+                            updatedAt: serverTimestamp()
+                        };
+                        
+                        if (newData.points !== undefined) lbUpdate.points = newData.points;
+                        
+                        await setDoc(publicRef, lbUpdate, { merge: true });
+                    }
                 } catch (e) { console.error("Save Data Error", e); }
+            };
+
+            const recordGamePoints = async (earnedPoints) => {
+                if (earnedPoints <= 0) return;
+                
+                setUserData(prev => ({ ...prev, points: (prev?.points || 0) + earnedPoints }));
+
+                if (user && firebaseConfig) {
+                    const db = getFirestore();
+                    const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main');
+                    const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', user.uid);
+                    
+                    const currentData = userDataRef.current;
+                    try {
+                        await setDoc(profileRef, { points: increment(earnedPoints), updatedAt: serverTimestamp() }, { merge: true });
+                        await setDoc(publicRef, {
+                            name: currentData?.name || loginForm.name || 'Pemain',
+                            school: currentData?.school || loginForm.school || '-',
+                            province: currentData?.province || loginForm.province || '-',
+                            unlockedLevel: currentData?.unlockedLevel || 1,
+                            avatar: currentData?.activeAvatar || 'default',
+                            points: increment(earnedPoints),
+                            updatedAt: serverTimestamp()
+                        }, { merge: true });
+                    } catch (e) { console.error("Sync Error", e); }
+                }
             };
 
             const handleLogin = async (e) => {
@@ -232,22 +394,69 @@
                     alert("Harap lengkapi Nama, Sekolah, dan Provinsi!");
                     return;
                 }
+
+                const pastRecord = leaderboardData.find(p => 
+                    p.name?.toLowerCase().trim() === loginForm.name.toLowerCase().trim() &&
+                    p.school?.toLowerCase().trim() === loginForm.school.toLowerCase().trim() &&
+                    p.province?.toLowerCase().trim() === loginForm.province.toLowerCase().trim()
+                );
+
+                const recoveredPoints = pastRecord?.points || 0;
+                const recoveredLevel = pastRecord?.unlockedLevel || 1;
+                const recoveredAvatar = pastRecord?.avatar || 'default';
+
                 const initData = { 
                     name: loginForm.name, 
                     school: loginForm.school,
                     province: loginForm.province, 
-                    points: 0, 
-                    unlockedLevel: 1, // Start dari Pulau 1
-                    ownedBatiks: ['kawung'],
+                    points: recoveredPoints, 
+                    unlockedLevel: recoveredLevel, 
+                    activeAvatar: recoveredAvatar,
+                    ownedAvatars: ['default', recoveredAvatar], // Pastikan punya avatar yang di-recover
+                    ownedBatiks: [],
                     powerups: { bomb: 3, hint: 5 }
                 };
+                
                 await saveUserData(initData);
                 setView('menu');
             };
 
-            const endGame = (isWin) => {
-                saveUserData({ points: (userData?.points || 0) + score });
-                setView(isWin ? 'win' : 'gameover');
+            const handleLogout = async () => {
+                const auth = getAuth();
+                try {
+                    await signOut(auth); // Memastikan data pemain sebelumnya dibersihkan
+                } catch (error) { console.error("Logout Error:", error); }
+                
+                setLoginForm({ name: '', province: '', school: '' });
+                setView('landing');
+            };
+
+            const buyBatik = (batik) => {
+                const currentPoints = userData?.points || 0;
+                if (currentPoints >= batik.price) {
+                    const newPoints = currentPoints - batik.price;
+                    const newOwned = [...(userData?.ownedBatiks || []), batik.id];
+                    saveUserData({ points: newPoints, ownedBatiks: newOwned });
+                    alert(`Berhasil membuka Motif ${batik.name}!`);
+                } else {
+                    alert("Poin kamu belum cukup untuk membeli motif ini.");
+                }
+            };
+
+            const buyAvatar = (avatar) => {
+                const currentPoints = userData?.points || 0;
+                if (currentPoints >= avatar.price) {
+                    const newPoints = currentPoints - avatar.price;
+                    const newOwned = [...(userData?.ownedAvatars || ['default']), avatar.id];
+                    saveUserData({ points: newPoints, ownedAvatars: newOwned, activeAvatar: avatar.id });
+                    alert(`Berhasil mendapatkan Profil ${avatar.name}!`);
+                } else {
+                    alert("Poin kamu belum cukup untuk mendapatkan profil ini.");
+                }
+            };
+
+            const equipAvatar = (avatarId) => {
+                saveUserData({ activeAvatar: avatarId });
             };
 
             const toggleFullscreen = () => {
@@ -278,12 +487,12 @@
                     n2 = Math.floor(Math.random() * n1) + 1;
                     ans = n1 - n2; text = `${n1} - ${n2}`;
                 } else if (type === 'mul') {
-                    const maxFactor = 4 + lvl; // lvl 3: max 7, lvl 5: max 9
+                    const maxFactor = 4 + lvl; 
                     n1 = Math.floor(Math.random() * maxFactor) + 2; 
                     n2 = Math.floor(Math.random() * maxFactor) + 2;
                     ans = n1 * n2; text = `${n1} × ${n2}`;
                 } else {
-                    const maxDivisor = 3 + lvl; // lvl 4: max 7
+                    const maxDivisor = 3 + lvl; 
                     n2 = Math.floor(Math.random() * maxDivisor) + 2; 
                     ans = Math.floor(Math.random() * 10) + 2;
                     n1 = n2 * ans; text = `${n1} ÷ ${n2}`;
@@ -303,7 +512,9 @@
                         setTimeLeft(prev => {
                             if (prev <= 1) {
                                 clearInterval(timer);
-                                endGame(false);
+                                recordGamePoints(scoreRef.current);
+                                setView('gameover');
+                                updateQuestProgress('play_solo'); // Quest Trigger
                                 return 0;
                             }
                             return prev - 1;
@@ -319,7 +530,6 @@
                 setActiveBatik(batik);
                 setLevel(selectedLvl); 
                 setScore(0); setCombo(0); setLives(3);
-                setPowerups(userData?.powerups || { bomb: 3, hint: 5 });
                 setTimeLeft(60 + (selectedLvl * 5)); 
                 setFeverTimer(0);
                 setGrid(generateGrid(selectedLvl)); setSelectedBlock(null);
@@ -337,6 +547,8 @@
                     setFeedback('correct');
                     const newCombo = combo + 1; 
                     setCombo(newCombo);
+                    
+                    updateQuestProgress('answer_correct'); // Quest Trigger
                     
                     let isTriggeringFever = false;
                     let currentFever = feverTimer;
@@ -364,15 +576,16 @@
                         
                         if (newGrid.filter(b => b.active).length === 0) {
                             const bonus = timeLeft * 10 + lives * 50; 
-                            const totalLevelScore = score + bonus + earned;
+                            const totalLevelScore = score + bonus + earned; 
                             setScore(totalLevelScore);
                             
-                            const currentUnlocked = userData?.unlockedLevel || 1;
+                            recordGamePoints(totalLevelScore);
+                            updateQuestProgress('play_solo'); // Quest Trigger
+                            
+                            const currentUnlocked = userDataRef.current?.unlockedLevel || 1;
                             const nextLevel = level + 1;
                             if (nextLevel > currentUnlocked && nextLevel <= ISLANDS.length) {
-                                saveUserData({ unlockedLevel: nextLevel, points: (userData?.points || 0) + totalLevelScore });
-                            } else {
-                                saveUserData({ points: (userData?.points || 0) + totalLevelScore });
+                                saveUserData({ unlockedLevel: nextLevel });
                             }
 
                             alert(`Selamat! Pulau ${ISLANDS[level-1].name} Ditaklukkan!\nBonus Waktu: ${timeLeft * 10}\nBonus Nyawa: ${lives * 50}`);
@@ -384,7 +597,15 @@
                     setFeedback('wrong'); setCombo(0); setLives(l => l - 1); setFeverTimer(0);
                     setTimeLeft(prev => Math.max(0, prev - 5));
                     setFloatingTexts(prev => [...prev, { id: Date.now()+Math.random(), text: `❌ -5 Detik`, x, y: y - 50 }]);
-                    setTimeout(() => { setFeedback(null); setInputAnswer(''); if (lives <= 1) { endGame(false); } }, 800);
+                    setTimeout(() => { 
+                        setFeedback(null); 
+                        setInputAnswer(''); 
+                        if (lives <= 1) { 
+                            recordGamePoints(scoreRef.current);
+                            updateQuestProgress('play_solo'); // Quest Trigger
+                            setView('gameover'); 
+                        } 
+                    }, 800);
                 }
             };
 
@@ -402,7 +623,11 @@
                 if (view === 'multiplayer-game' && !mpState.winner && mpState.timer > 0) {
                     timerRef.current = setInterval(() => {
                         setMpState(prev => {
-                            if (prev.timer <= 1) { clearInterval(timerRef.current); return { ...prev, timer: 0, winner: 'draw' }; }
+                            if (prev.timer <= 1) { 
+                                clearInterval(timerRef.current); 
+                                updateQuestProgress('play_duel'); // Quest Trigger
+                                return { ...prev, timer: 0, winner: 'draw' }; 
+                            }
                             return { ...prev, timer: prev.timer - 1 };
                         });
                     }, 1000);
@@ -422,7 +647,10 @@
                     
                     setMpState(prev => {
                         let newState = { ...prev, [pKey]: { ...prev[pKey], feedback: 'correct', score: prev[pKey].score + (player.activeBlock.isSpecial ? 200 : 100) } };
-                        if (isFinished && !prev.winner) newState.winner = pKey;
+                        if (isFinished && !prev.winner) {
+                            newState.winner = pKey;
+                            updateQuestProgress('play_duel'); // Quest Trigger
+                        }
                         return newState;
                     });
 
@@ -433,7 +661,10 @@
                     setMpState(prev => {
                         const newLives = prev[pKey].lives - 1;
                         let newState = { ...prev, [pKey]: { ...prev[pKey], feedback: 'wrong', lives: newLives } };
-                        if (newLives <= 0 && !prev.winner) newState.winner = pKey === 'p1' ? 'p2' : 'p1';
+                        if (newLives <= 0 && !prev.winner) {
+                            newState.winner = pKey === 'p1' ? 'p2' : 'p1';
+                            updateQuestProgress('play_duel'); // Quest Trigger
+                        }
                         return newState;
                     });
                     setTimeout(() => { setMpState(prev => ({ ...prev, [pKey]: { ...prev[pKey], feedback: null, input: '' } })); }, 800);
@@ -464,6 +695,11 @@
                         <button onPointerDown={(e) => { e.preventDefault(); onSubmit(e); }} className={goClass}>GO</button>
                     </div>
                 );
+            };
+
+            const getActiveAvatarIcon = () => {
+                const currentAvatar = AVATARS.find(a => a.id === (userData?.activeAvatar || 'default'));
+                return currentAvatar ? currentAvatar.icon : '👤';
             };
 
             if (view === 'loading') return <div className="min-h-[100dvh] bg-orange-50 flex items-center justify-center font-nunito"><div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-600"></div></div>;
@@ -504,8 +740,19 @@
                     <div className="min-h-[100dvh] bg-gray-50 p-4 md:p-8 font-nunito flex flex-col items-center justify-center">
                         <FullscreenButton />
                         <div className="w-full max-w-lg md:max-w-4xl lg:max-w-6xl space-y-6">
+                            
+                            {/* Header Controls: Tombol Keluar */}
+                            <div className="flex justify-end w-full">
+                                <button onClick={handleLogout} className="flex items-center gap-2 bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl font-black text-sm md:text-base transition-all shadow-sm">
+                                    <LogOut size={20} /> Ganti Pemain
+                                </button>
+                            </div>
+
                             <div className="bg-white rounded-[2rem] p-6 md:p-8 lg:p-10 shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-48 h-48 bg-orange-100 rounded-bl-full -z-10 opacity-50"></div>
+                                <div className="text-5xl md:text-6xl lg:text-7xl bg-gray-100 w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 flex items-center justify-center rounded-[2rem] shadow-inner border-4 border-gray-200 shrink-0">
+                                    {getActiveAvatarIcon()}
+                                </div>
                                 <div className="text-center md:text-left flex-1">
                                     <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-800 mb-2">{userData?.name}</h2>
                                     <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4 text-sm md:text-base font-bold text-gray-500">
@@ -523,22 +770,39 @@
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 lg:gap-8">
-                                <button onClick={() => setView('map')} className="bg-gradient-to-br from-emerald-500 to-green-600 p-6 md:p-8 lg:p-10 rounded-[2rem] text-white shadow-[0_8px_0_rgb(21,128,61)] active:shadow-[0_0px_0_rgb(21,128,61)] active:translate-y-2 transition-all flex flex-col items-center md:items-start text-left relative overflow-hidden group">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 lg:gap-8">
+                                <button onClick={() => setView('map')} className="col-span-2 bg-gradient-to-br from-emerald-500 to-green-600 p-6 md:p-8 lg:p-10 rounded-[2rem] text-white shadow-[0_8px_0_rgb(21,128,61)] active:shadow-[0_0px_0_rgb(21,128,61)] active:translate-y-2 transition-all flex flex-col items-center md:items-start text-left relative overflow-hidden group">
                                     <div className="absolute -right-10 -bottom-10 opacity-20 group-hover:scale-110 transition-transform"><MapIcon size={150}/></div>
                                     <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 rounded-2xl flex items-center justify-center mb-4 md:mb-6 backdrop-blur-sm"><Play fill="currentColor" size={32} /></div>
-                                    <h3 className="text-3xl md:text-4xl lg:text-5xl font-black mb-2">Petualangan</h3>
-                                    <p className="font-bold text-green-100 text-base md:text-lg lg:text-xl">Jelajahi Peta Nusantara!</p>
+                                    <h3 className="text-3xl md:text-4xl font-black mb-1">Petualangan</h3>
+                                    <p className="font-bold text-green-100 text-sm md:text-base">Jelajahi Peta Nusantara!</p>
                                 </button>
 
-                                <button onClick={() => setView('multiplayer-setup')} className="bg-gradient-to-br from-blue-500 to-blue-700 p-6 md:p-8 lg:p-10 rounded-[2rem] text-white shadow-[0_8px_0_rgb(29,78,216)] active:shadow-[0_0px_0_rgb(29,78,216)] active:translate-y-2 transition-all flex flex-col items-center md:items-start text-left relative overflow-hidden group">
+                                <button onClick={() => setView('multiplayer-setup')} className="col-span-2 bg-gradient-to-br from-blue-500 to-blue-700 p-6 md:p-8 lg:p-10 rounded-[2rem] text-white shadow-[0_8px_0_rgb(29,78,216)] active:shadow-[0_0px_0_rgb(29,78,216)] active:translate-y-2 transition-all flex flex-col items-center md:items-start text-left relative overflow-hidden group">
                                     <div className="absolute -right-10 -bottom-10 opacity-20 group-hover:scale-110 transition-transform"><Swords size={150}/></div>
                                     <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 rounded-2xl flex items-center justify-center mb-4 md:mb-6 backdrop-blur-sm"><Users fill="currentColor" size={32} /></div>
-                                    <h3 className="text-3xl md:text-4xl lg:text-5xl font-black mb-2">Mode Duel</h3>
-                                    <p className="font-bold text-blue-100 text-base md:text-lg lg:text-xl">Tantang Temanmu (1 vs 1)</p>
+                                    <h3 className="text-3xl md:text-4xl font-black mb-1">Mode Duel</h3>
+                                    <p className="font-bold text-blue-100 text-sm md:text-base">Tantang Temanmu (1 vs 1)</p>
                                 </button>
 
-                                <button onClick={() => setView('leaderboard')} className="md:col-span-2 bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 p-6 md:p-8 rounded-[2rem] text-white shadow-[0_8px_0_rgb(180,83,9)] active:shadow-[0_0px_0_rgb(180,83,9)] active:translate-y-2 transition-all flex items-center justify-between relative overflow-hidden group">
+                                <button onClick={() => setView('avatar-shop')} className="col-span-1 md:col-span-2 bg-white border-4 border-pink-200 p-4 md:p-6 rounded-[2rem] text-pink-600 shadow-[0_6px_0_rgb(24bc,191,214)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-4 hover:border-pink-400">
+                                    <div className="text-3xl md:text-4xl">🦊</div>
+                                    <div className="text-left">
+                                        <h3 className="text-xl md:text-2xl font-black">Toko Avatar</h3>
+                                        <p className="text-xs md:text-sm font-bold text-pink-400">Beli profil lucu</p>
+                                    </div>
+                                </button>
+
+                                <button onClick={() => setView('quests')} className="col-span-1 md:col-span-2 bg-white border-4 border-teal-200 p-4 md:p-6 rounded-[2rem] text-teal-600 shadow-[0_6px_0_rgb(153,246,228)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-4 hover:border-teal-400 relative">
+                                    {userData?.quests?.some(q => q.progress >= q.target && !q.claimed) && <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full border-2 border-white animate-bounce"></div>}
+                                    <div className="text-3xl md:text-4xl">📜</div>
+                                    <div className="text-left">
+                                        <h3 className="text-xl md:text-2xl font-black">Misi Harian</h3>
+                                        <p className="text-xs md:text-sm font-bold text-teal-400">Klaim hadiah harian</p>
+                                    </div>
+                                </button>
+
+                                <button onClick={() => setView('leaderboard')} className="col-span-2 md:col-span-4 bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 p-6 md:p-8 rounded-[2rem] text-white shadow-[0_8px_0_rgb(180,83,9)] active:shadow-[0_0px_0_rgb(180,83,9)] active:translate-y-2 transition-all flex items-center justify-between relative overflow-hidden group">
                                     <div className="absolute right-10 top-1/2 -translate-y-1/2 opacity-30 group-hover:scale-125 transition-transform"><CantingEmas size={120} /></div>
                                     <div className="text-left relative z-10 flex items-center gap-6">
                                         <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm"><Medal fill="currentColor" size={36} /></div>
@@ -548,6 +812,116 @@
                                         </div>
                                     </div>
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'avatar-shop') {
+                const ownedAvatars = userData?.ownedAvatars || ['default'];
+                const activeAvatar = userData?.activeAvatar || 'default';
+
+                return (
+                    <div className="min-h-[100dvh] bg-pink-50 p-4 md:p-8 font-nunito flex flex-col items-center">
+                        <FullscreenButton />
+                        <div className="w-full max-w-lg md:max-w-4xl lg:max-w-5xl">
+                            <div className="flex items-center gap-4 md:gap-6 mb-8 bg-white p-4 md:p-6 rounded-[2rem] shadow-sm">
+                                <button onClick={() => setView('menu')} className="p-3 md:p-4 bg-gray-100 rounded-full shadow-sm text-gray-600 hover:bg-gray-200"><ArrowLeft size={24}/></button>
+                                <div>
+                                    <h2 className="text-3xl md:text-4xl font-black text-pink-600">Toko Avatar Lucu</h2>
+                                    <p className="font-bold text-pink-400 mt-1">Beli avatar untuk dipajang di Leaderboard!</p>
+                                </div>
+                                <div className="ml-auto bg-amber-100 text-amber-700 px-4 py-2 rounded-xl font-black md:text-xl">
+                                    {userData?.points?.toLocaleString() || 0} Poin
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                                {AVATARS.map(avatar => {
+                                    const isOwned = ownedAvatars.includes(avatar.id);
+                                    const isActive = activeAvatar === avatar.id;
+                                    
+                                    return (
+                                        <div key={avatar.id} className={`bg-white rounded-[2rem] p-4 border-4 flex flex-col items-center text-center transition-all ${isActive ? 'border-pink-500 shadow-lg scale-105' : 'border-gray-100 hover:border-pink-300'}`}>
+                                            <div className="text-6xl md:text-7xl lg:text-8xl mb-4 bg-gray-50 w-full rounded-2xl py-4">{avatar.icon}</div>
+                                            <h3 className="font-black text-gray-800 text-lg md:text-xl mb-1">{avatar.name}</h3>
+                                            
+                                            <div className="mt-auto w-full pt-4">
+                                                {isActive ? (
+                                                    <button className="w-full bg-pink-100 text-pink-600 font-black py-3 rounded-xl cursor-default">SEDANG DIPAKAI</button>
+                                                ) : isOwned ? (
+                                                    <button onClick={() => equipAvatar(avatar.id)} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-black py-3 rounded-xl shadow-[0_4px_0_rgb(29,78,216)] active:translate-y-1 active:shadow-none transition-all">PAKAI</button>
+                                                ) : (
+                                                    <button onClick={() => buyAvatar(avatar)} className={`w-full font-black py-3 rounded-xl transition-all shadow-[0_4px_0_rgba(0,0,0,0.2)] active:translate-y-1 active:shadow-none flex items-center justify-center gap-2 ${(userData?.points || 0) >= avatar.price ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                                                        <Lock size={16}/> {avatar.price.toLocaleString()} Poin
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'quests') {
+                const quests = userData?.quests || QUEST_TEMPLATES.map(q => ({ ...q, progress: 0, claimed: false }));
+                const streak = userData?.loginStreak || 1;
+
+                return (
+                    <div className="min-h-[100dvh] bg-teal-50 p-4 md:p-8 font-nunito flex flex-col items-center">
+                        <FullscreenButton />
+                        <div className="w-full max-w-lg md:max-w-2xl lg:max-w-4xl">
+                            <div className="flex items-center gap-4 md:gap-6 mb-8 bg-white p-4 md:p-6 rounded-[2rem] shadow-sm">
+                                <button onClick={() => setView('menu')} className="p-3 md:p-4 bg-gray-100 rounded-full shadow-sm text-gray-600 hover:bg-gray-200"><ArrowLeft size={24}/></button>
+                                <div>
+                                    <h2 className="text-3xl md:text-4xl font-black text-teal-700">Misi Harian</h2>
+                                    <p className="font-bold text-teal-500 mt-1">Selesaikan misi untuk poin ekstra!</p>
+                                </div>
+                            </div>
+
+                            {/* Streak Banner */}
+                            <div className="bg-gradient-to-r from-orange-400 to-red-500 rounded-[2rem] p-6 text-white mb-8 shadow-lg flex items-center justify-between">
+                                <div>
+                                    <p className="font-bold text-orange-100 uppercase tracking-widest text-sm mb-1">Login Streak Harian</p>
+                                    <h3 className="text-3xl md:text-4xl font-black flex items-center gap-2"><Flame className="text-yellow-300" size={36}/> {streak} Hari Berturut-turut!</h3>
+                                </div>
+                                <div className="text-right hidden md:block">
+                                    <p className="text-sm font-bold text-orange-100">Bonus besok:</p>
+                                    <p className="text-2xl font-black text-yellow-200">+{(streak + 1) * 50} Poin</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                {quests.map(quest => {
+                                    const isComplete = quest.progress >= quest.target;
+                                    return (
+                                        <div key={quest.id} className={`bg-white rounded-[2rem] p-6 border-4 flex flex-col md:flex-row items-center gap-6 ${isComplete && !quest.claimed ? 'border-teal-400 shadow-lg' : 'border-gray-100'}`}>
+                                            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 ${quest.claimed ? 'bg-gray-100 text-gray-400' : isComplete ? 'bg-teal-100 text-teal-500' : 'bg-orange-100 text-orange-500'}`}>
+                                                {quest.claimed ? <CheckCircle2 size={32}/> : <CalendarCheck size={32}/>}
+                                            </div>
+                                            <div className="flex-1 w-full text-center md:text-left">
+                                                <h3 className={`text-xl font-black mb-2 ${quest.claimed ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{quest.title}</h3>
+                                                <div className="w-full bg-gray-200 rounded-full h-3 mb-1 overflow-hidden">
+                                                    <div className={`h-full transition-all ${isComplete ? 'bg-teal-500' : 'bg-orange-500'}`} style={{ width: `${Math.min(100, (quest.progress/quest.target)*100)}%` }}></div>
+                                                </div>
+                                                <p className="text-sm font-bold text-gray-500">{quest.progress} / {quest.target}</p>
+                                            </div>
+                                            <div className="w-full md:w-auto shrink-0">
+                                                {quest.claimed ? (
+                                                    <button className="w-full md:w-auto px-6 py-3 bg-gray-100 text-gray-400 font-black rounded-xl cursor-not-allowed">DIKLAIM</button>
+                                                ) : isComplete ? (
+                                                    <button onClick={() => claimQuest(quest.id)} className="w-full md:w-auto px-8 py-3 bg-teal-500 hover:bg-teal-600 text-white font-black rounded-xl shadow-[0_4px_0_rgb(13,148,136)] active:translate-y-1 active:shadow-none transition-all">KLAIM +{quest.reward}</button>
+                                                ) : (
+                                                    <div className="px-6 py-3 bg-orange-50 text-orange-600 font-black rounded-xl border-2 border-orange-200 text-center">+{quest.reward} Poin</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
@@ -632,11 +1006,19 @@
                                     leaderboardData.map((player, index) => {
                                         const isTop1 = index === 0;
                                         const isTop3 = index < 3;
+                                        
+                                        // Cari icon avatar
+                                        const pAvatarIcon = AVATARS.find(a => a.id === player.avatar)?.icon || '👤';
+
                                         return (
                                             <div key={player.id} className={`flex items-center gap-4 p-4 md:p-6 rounded-2xl border-2 transition-all hover:scale-[1.01] ${isTop1 ? 'bg-amber-100 border-amber-400 shadow-lg' : isTop3 ? 'bg-white border-amber-200 shadow-md' : 'bg-white border-gray-200'}`}>
                                                 <div className={`w-12 h-12 md:w-16 md:h-16 shrink-0 flex items-center justify-center rounded-2xl font-black text-2xl md:text-3xl ${isTop1 ? 'bg-amber-500 text-white shadow-inner' : isTop3 ? 'bg-amber-200 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
                                                     {index + 1}
                                                 </div>
+                                                
+                                                {/* Profil Pemain (Ditambahkan Avatar) */}
+                                                <div className="text-4xl md:text-5xl shrink-0">{pAvatarIcon}</div>
+
                                                 <div className="flex-1 min-w-0">
                                                     <h3 className={`text-xl md:text-2xl font-black truncate flex items-center gap-2 ${isTop1 ? 'text-amber-800' : 'text-gray-800'}`}>
                                                         {player.name}
@@ -867,7 +1249,7 @@
                                             <button onPointerDown={(e) => { e.preventDefault(); if(powerups.hint>0){ setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, hint: p.hint-1}))} }} disabled={powerups.hint <= 0} className="flex items-center gap-2 bg-green-100 text-green-700 px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base lg:text-lg disabled:opacity-50 select-none">
                                                 <Lightbulb className="w-5 h-5 md:w-6 md:h-6"/> Petunjuk ({powerups.hint})
                                             </button>
-                                            <button onPointerDown={(e) => { e.preventDefault(); if(powerups.bomb>0){ setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, bomb: p.bomb-1})); setTimeout(()=>submitAnswer(e), 100); } }} disabled={powerups.bomb <= 0} className="flex items-center gap-2 bg-red-100 text-red-700 px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base lg:text-lg disabled:opacity-50 select-none">
+                                            <button onPointerDown={(e) => { e.preventDefault(); if(powerups.bomb>0){ updateQuestProgress('use_bomb'); setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, bomb: p.bomb-1})); setTimeout(()=>submitAnswer(e), 100); } }} disabled={powerups.bomb <= 0} className="flex items-center gap-2 bg-red-100 text-red-700 px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base lg:text-lg disabled:opacity-50 select-none">
                                                 <Bomb className="w-5 h-5 md:w-6 md:h-6"/> Bom ({powerups.bomb})
                                             </button>
                                         </div>
@@ -915,29 +1297,54 @@
             }
 
             if (view === 'skin-select') {
-                const ownedIds = userData?.ownedBatiks || ['kawung'];
+                const ownedIds = userData?.ownedBatiks || [];
+                const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
+                const islandBatiks = BATIKS.filter(b => b.islandId === level);
+
                 return (
                     <div className="min-h-[100dvh] bg-gray-50 p-4 md:p-8 font-nunito flex flex-col items-center">
                         <FullscreenButton />
                         <div className="w-full max-w-lg md:max-w-4xl lg:max-w-6xl">
                             <div className="flex items-center gap-4 md:gap-6 mb-8 md:mb-12">
                                 <button onClick={() => setView('map')} className="p-4 bg-white rounded-full shadow-sm text-gray-600 hover:bg-gray-100"><ArrowLeft size={28}/></button>
-                                <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-800">Pilih Motif Batikmu</h2>
+                                <div>
+                                    <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-800">Motif {currentIsland.name}</h2>
+                                    <p className="font-bold text-gray-500 mt-1">Pilih motif batik daerah untuk dimainkan</p>
+                                </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-                                {BATIKS.map(b => {
-                                    const isOwned = ownedIds.includes(b.id);
+                                {islandBatiks.map(b => {
+                                    const isOwned = b.price === 0 || ownedIds.includes(b.id);
                                     return (
-                                        <button key={b.id} disabled={!isOwned} onClick={() => startGame(b.id, level)}
-                                            className={`p-6 rounded-[2rem] border-4 text-left flex flex-col items-start gap-4 transition-all ${isOwned ? 'bg-white border-orange-200 hover:border-orange-500 shadow-xl hover:-translate-y-2' : 'bg-gray-100 border-gray-200 opacity-60'}`}>
-                                            <div className="w-full aspect-[4/3] rounded-2xl bg-gray-200 overflow-hidden" style={isOwned ? { backgroundImage: `url(${b.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}></div>
-                                            <div className="w-full">
-                                                <h3 className="font-black text-2xl md:text-3xl text-gray-800 mb-1">{b.name}</h3>
-                                                <p className="text-sm md:text-base font-bold text-gray-400 mb-4">{b.mathConcept}</p>
-                                                {!isOwned && <span className="text-sm md:text-base font-black bg-gray-200 text-gray-500 px-4 py-2 rounded-xl flex items-center w-max"><Lock size={16} className="mr-2"/>Terkunci</span>}
-                                                {isOwned && <span className="text-sm md:text-base font-black bg-orange-100 text-orange-600 px-4 py-2 rounded-xl flex items-center w-max">Siap Pakai</span>}
+                                        <div key={b.id} 
+                                            onClick={() => { if(isOwned) startGame(b.id, level) }}
+                                            className={`p-6 rounded-[2rem] border-4 text-left flex flex-col items-start gap-4 transition-all ${isOwned ? 'bg-white border-orange-200 hover:border-orange-500 shadow-xl hover:-translate-y-2 cursor-pointer' : 'bg-gray-100 border-gray-200 opacity-90'}`}>
+                                            <div className="w-full aspect-[4/3] rounded-2xl bg-gray-200 overflow-hidden relative" style={{ backgroundImage: `url(${b.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                                                {!isOwned && <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-sm"><Lock size={48} className="text-white opacity-80"/></div>}
                                             </div>
-                                        </button>
+                                            <div className="w-full flex-1 flex flex-col justify-between">
+                                                <div>
+                                                    <h3 className="font-black text-2xl md:text-3xl text-gray-800 mb-1">{b.name}</h3>
+                                                    <p className="text-sm md:text-base font-bold text-gray-400 mb-4">{b.mathConcept}</p>
+                                                </div>
+                                                
+                                                {isOwned ? (
+                                                    <span className="text-sm md:text-base font-black bg-orange-100 text-orange-600 px-4 py-3 rounded-xl flex items-center justify-center w-full">Siap Pakai</span>
+                                                ) : (
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); buyBatik(b); }}
+                                                        className={`px-4 py-3 rounded-xl font-black text-sm md:text-base flex items-center justify-between w-full transition-all ${
+                                                            (userData?.points || 0) >= b.price 
+                                                            ? 'bg-amber-500 text-white hover:bg-amber-600 active:scale-95 shadow-[0_4px_0_rgb(180,83,9)] active:shadow-none active:translate-y-1' 
+                                                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                        }`}
+                                                    >
+                                                        <span className="flex items-center gap-2"><Lock size={18}/> Buka Motif</span>
+                                                        <span>{b.price.toLocaleString()} Poin</span>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
                                     );
                                 })}
                             </div>
