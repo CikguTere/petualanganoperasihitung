@@ -833,80 +833,266 @@
                     );
                 }
 
-                if (view === 'game') {
-                    const isFever = feverTimer > 0;
-                    const bgClass = isFever ? 'bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500' : 'bg-gray-900';
-                    const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
+                if (view === 'avatar-shop') {
+                    const ownedAvatars = userData?.ownedAvatars || ['default'];
+                    const activeAvatar = userData?.activeAvatar || 'default';
 
                     return (
-                        <div className={`fixed inset-0 flex flex-col items-center font-nunito p-2 md:p-6 lg:p-8 transition-colors duration-500 ${bgClass}`} style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}>
+                        <div className="min-h-[100dvh] bg-pink-50 p-4 md:p-8 font-nunito flex flex-col items-center justify-start md:justify-center overflow-y-auto">
                             <FullscreenButton />
-                            {floatingTexts.map(ft => ( <FloatingText key={ft.id} text={ft.text} x={ft.x} y={ft.y} onComplete={() => setFloatingTexts(prev => prev.filter(t => t.id !== ft.id))} /> ))}
-
-                            {isFever && (
-                                <div className="w-full max-w-[90%] md:max-w-3xl bg-black/30 rounded-full h-1.5 md:h-3 mb-2 md:mb-4 overflow-hidden backdrop-blur-sm border border-yellow-300 shadow-[0_0_10px_rgba(250,204,21,0.6)] shrink-0">
-                                    <div className="h-full bg-yellow-400 shadow-[0_0_10px_#fff]" style={{ width: `${(feverTimer/10)*100}%`, transition: 'width 1s linear' }}></div>
-                                </div>
-                            )}
-
-                            <div className="w-full max-w-5xl flex flex-col lg:flex-row items-center lg:items-stretch justify-center flex-1 gap-2 md:gap-6 min-h-0 w-full pb-2">
-                                
-                                {/* Header Panel */}
-                                <div className="w-full lg:w-1/3 flex flex-row lg:flex-col justify-between items-center bg-gray-800 rounded-[1.5rem] lg:rounded-3xl p-3 md:p-6 shadow-xl border-b-4 md:border-b-8 lg:border-b-0 lg:border-r-8 border-gray-950 shrink-0 gap-2">
-                                    <div className="flex flex-col md:flex-row lg:flex-col items-center gap-1 md:gap-2 text-red-500 shrink-0">
-                                        <div className="flex gap-0.5 md:gap-1">
-                                            {[...Array(3)].map((_, i) => <Heart key={i} fill={i < lives ? "currentColor" : "none"} className={`w-4 h-4 sm:w-5 sm:h-5 md:w-8 md:h-8 ${i >= lives ? "text-white/20" : ""}`} />)}
-                                        </div>
+                            <div className="w-full max-w-lg md:max-w-4xl lg:max-w-5xl py-8 mt-4 md:mt-0">
+                                <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 mb-6 md:mb-8 bg-white p-4 md:p-6 rounded-[2rem] shadow-sm text-center md:text-left">
+                                    <button onClick={() => setView('menu')} className="p-3 md:p-4 bg-gray-100 rounded-full shadow-sm text-gray-600 hover:bg-gray-200"><ArrowLeft className="w-5 h-5 md:w-6 md:h-6"/></button>
+                                    <div>
+                                        <h2 className="text-2xl md:text-4xl font-black text-pink-600">Toko Avatar Lucu</h2>
+                                        <p className="font-bold text-pink-400 mt-1 text-sm md:text-base">Beli avatar untuk dipajang di Leaderboard!</p>
                                     </div>
-                                    
-                                    <div className="text-center flex-1 lg:flex-none">
-                                        <div className="text-[10px] md:text-sm lg:text-base font-bold uppercase tracking-widest text-gray-400 truncate max-w-[120px] sm:max-w-[180px] lg:max-w-none mx-auto">{currentIsland.name}</div>
-                                        <div className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black text-white leading-none mt-0.5 md:mt-1">{score}</div>
-                                        {isFever && <div className="text-[8px] md:text-xs lg:text-sm font-black text-yellow-300 animate-pulse mt-0.5 md:mt-1">🔥 x3 POINT 🔥</div>}
-                                    </div>
-                                    
-                                    <div className={`px-2 py-1 md:px-4 md:py-2 rounded-lg md:rounded-xl flex items-center justify-center gap-1 md:gap-2 shrink-0 min-w-[50px] md:min-w-[80px] ${isFever ? 'bg-red-600' : 'bg-gray-700'}`}>
-                                        <Clock className={`w-3 h-3 sm:w-4 sm:h-4 md:w-6 md:h-6 ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-yellow-400'}`}/>
-                                        <span className={`font-black text-base md:text-xl lg:text-2xl leading-none ${timeLeft <= 10 && !isFever ? 'text-red-500' : 'text-white'}`}>{timeLeft}s</span>
+                                    <div className="md:ml-auto bg-amber-100 text-amber-700 px-4 py-2 rounded-xl font-black text-sm md:text-xl w-full md:w-auto mt-2 md:mt-0 text-center">
+                                        {userData?.points?.toLocaleString() || 0} Poin
                                     </div>
                                 </div>
 
-                                {/* Game Area */}
-                                <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 w-full overflow-hidden gap-2">
-                                    {!selectedBlock ? (
-                                        <div className={`shadow-xl relative border-4 md:border-8 rounded-2xl md:rounded-[2rem] p-1.5 md:p-4 w-full max-w-[min(100%,_45vh)] lg:max-w-[min(100%,_65vh)] aspect-square shrink-0 ${isFever ? 'bg-orange-600 border-yellow-400' : 'bg-gray-800 border-gray-700'}`}>
-                                            <div className="absolute inset-1.5 md:inset-4 rounded-xl md:rounded-2xl bg-cover bg-center opacity-80" style={{ backgroundImage: `url(${activeBatik.bgImage})`}}></div>
-                                            <div className="grid grid-cols-4 grid-rows-4 gap-1 md:gap-2 w-full h-full relative z-10">
-                                                {grid.map(b => (
-                                                    <button key={b.id} onPointerDown={(e) => { e.preventDefault(); if(b.active) { setSelectedBlock(b); setInputAnswer(''); setFeedback(null); }}}
-                                                        className={`rounded-md md:rounded-xl transition-all transform flex items-center justify-center font-bold text-lg md:text-3xl shadow-[0_2px_0_rgba(0,0,0,0.3)] md:shadow-[0_4px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-0.5 select-none
-                                                            ${!b.active ? 'opacity-0 pointer-events-none scale-50' : 'opacity-100 scale-100'}
-                                                            ${b.isSpecial ? 'bg-gradient-to-br from-yellow-400 to-amber-500' : (isFever ? 'bg-gradient-to-br from-red-500 to-orange-500' : 'bg-gradient-to-br from-blue-400 to-blue-600')}`}>
-                                                        {b.active && (b.isSpecial ? <span className="text-white drop-shadow-md">★</span> : <span className="text-white/30 text-sm md:text-2xl">?</span>)}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="bg-white rounded-2xl md:rounded-3xl p-3 md:p-6 shadow-2xl w-[95%] max-w-sm md:max-w-lg border-2 md:border-4 border-gray-200 flex flex-col justify-center shrink-0">
-                                            <div className="flex justify-between items-center mb-3 md:mb-6">
-                                                <button onPointerDown={(e) => { e.preventDefault(); setSelectedBlock(null); }} className="text-gray-400 bg-gray-100 p-2 md:p-3 rounded-full hover:bg-gray-200 select-none"><ArrowLeft className="w-5 h-5 md:w-6 md:h-6"/></button>
-                                                <div className="text-2xl sm:text-3xl md:text-5xl font-black text-gray-800 tracking-wider text-center flex-1">
-                                                    {selectedBlock.q.text} = <span className={`inline-block min-w-[50px] md:min-w-[80px] text-center border-b-2 md:border-b-4 pb-0.5 md:pb-1 ${feedback === 'wrong' ? 'border-red-500 text-red-500' : 'border-blue-500 text-blue-600'}`}>{inputAnswer || '?'}</span>
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+                                    {AVATARS.map(avatar => {
+                                        const isOwned = ownedAvatars.includes(avatar.id);
+                                        const isActive = activeAvatar === avatar.id;
+                                        
+                                        return (
+                                            <div key={avatar.id} className={`bg-white rounded-[1.5rem] md:rounded-[2rem] p-3 md:p-4 border-2 md:border-4 flex flex-col items-center text-center transition-all ${isActive ? 'border-pink-500 shadow-lg scale-105' : 'border-gray-100 hover:border-pink-300'}`}>
+                                                <div className="text-4xl md:text-7xl mb-2 md:mb-4 bg-gray-50 w-full rounded-2xl py-3 md:py-4">{avatar.icon}</div>
+                                                <h3 className="font-black text-gray-800 text-sm md:text-xl mb-1">{avatar.name}</h3>
+                                                
+                                                <div className="mt-auto w-full pt-2 md:pt-4">
+                                                    {isActive ? (
+                                                        <button className="w-full bg-pink-100 text-pink-600 font-black py-2 md:py-3 rounded-lg md:rounded-xl cursor-default text-xs md:text-base">DIPAKAI</button>
+                                                    ) : isOwned ? (
+                                                        <button onClick={() => equipAvatar(avatar.id)} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-black py-2 md:py-3 rounded-lg md:rounded-xl shadow-[0_3px_0_rgb(29,78,216)] active:translate-y-1 active:shadow-none transition-all text-xs md:text-base">PAKAI</button>
+                                                    ) : (
+                                                        <button onClick={() => buyAvatar(avatar)} className={`w-full font-black py-2 md:py-3 rounded-lg md:rounded-xl transition-all shadow-[0_3px_0_rgba(0,0,0,0.2)] active:translate-y-1 active:shadow-none flex items-center justify-center gap-1 md:gap-2 text-xs md:text-base ${(userData?.points || 0) >= avatar.price ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                                                            <Lock size={14}/> {avatar.price.toLocaleString()}
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
-                                            <div className="flex justify-center gap-2 md:gap-4 mb-3 md:mb-6">
-                                                <button onPointerDown={(e) => { e.preventDefault(); if(powerups?.hint>0){ setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, hint: p.hint-1}))} }} disabled={powerups?.hint <= 0} className="flex items-center gap-1 md:gap-2 bg-green-100 text-green-700 px-3 md:px-4 py-2 md:py-2 rounded-full font-bold text-[10px] md:text-sm disabled:opacity-50 select-none">
-                                                    <Lightbulb className="w-3 h-3 md:w-4 md:h-4"/> Petunjuk ({powerups?.hint || 0})
-                                                </button>
-                                                <button onPointerDown={(e) => { e.preventDefault(); if(powerups?.bomb>0){ updateQuestProgress('use_bomb'); setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, bomb: p.bomb-1})); setTimeout(()=>submitAnswer(e), 100); } }} disabled={powerups?.bomb <= 0} className="flex items-center gap-1 md:gap-2 bg-red-100 text-red-700 px-3 md:px-4 py-2 md:py-2 rounded-full font-bold text-[10px] md:text-sm disabled:opacity-50 select-none">
-                                                    <Bomb className="w-3 h-3 md:w-4 md:h-4"/> Bom ({powerups?.bomb || 0})
-                                                </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+
+                if (view === 'quests') {
+                    const quests = userData?.quests || QUEST_TEMPLATES.map(q => ({ ...q, progress: 0, claimed: false }));
+                    const streak = userData?.loginStreak || 1;
+
+                    return (
+                        <div className="min-h-[100dvh] bg-teal-50 p-4 md:p-8 font-nunito flex flex-col items-center justify-start md:justify-center overflow-y-auto">
+                            <FullscreenButton />
+                            <div className="w-full max-w-lg md:max-w-2xl lg:max-w-4xl py-8 mt-4 md:mt-0">
+                                <div className="flex items-center gap-4 md:gap-6 mb-6 md:mb-8 bg-white p-4 md:p-6 rounded-[2rem] shadow-sm">
+                                    <button onClick={() => setView('menu')} className="p-3 md:p-4 bg-gray-100 rounded-full shadow-sm text-gray-600 hover:bg-gray-200"><ArrowLeft className="w-5 h-5 md:w-6 md:h-6"/></button>
+                                    <div>
+                                        <h2 className="text-2xl md:text-4xl font-black text-teal-700">Misi Harian</h2>
+                                        <p className="font-bold text-teal-500 mt-1 text-sm md:text-base">Selesaikan misi untuk poin ekstra!</p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-gradient-to-r from-orange-400 to-red-500 rounded-[2rem] p-5 md:p-6 text-white mb-6 md:mb-8 shadow-lg flex flex-col md:flex-row items-center justify-between text-center md:text-left gap-4">
+                                    <div>
+                                        <p className="font-bold text-orange-100 uppercase tracking-widest text-xs md:text-sm mb-1">Login Streak Harian</p>
+                                        <h3 className="text-2xl md:text-4xl font-black flex items-center justify-center md:justify-start gap-2"><Flame className="text-yellow-300 w-6 h-6 md:w-8 md:h-8"/> {streak} Hari Berturut-turut!</h3>
+                                    </div>
+                                    <div className="text-center md:text-right w-full md:w-auto bg-white/20 p-3 md:p-4 rounded-xl">
+                                        <p className="text-xs md:text-sm font-bold text-orange-100">Bonus besok:</p>
+                                        <p className="text-xl md:text-2xl font-black text-yellow-200">+{(streak + 1) * 50} Poin</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 md:space-y-4">
+                                    {quests.map(quest => {
+                                        const isComplete = quest.progress >= quest.target;
+                                        return (
+                                            <div key={quest.id} className={`bg-white rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-6 border-2 md:border-4 flex flex-col md:flex-row items-center gap-4 md:gap-6 ${isComplete && !quest.claimed ? 'border-teal-400 shadow-lg' : 'border-gray-100'}`}>
+                                                <div className={`w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 ${quest.claimed ? 'bg-gray-100 text-gray-400' : isComplete ? 'bg-teal-100 text-teal-500' : 'bg-orange-100 text-orange-500'}`}>
+                                                    {quest.claimed ? <CheckCircle2 className="w-6 h-6 md:w-8 md:h-8"/> : <CalendarCheck className="w-6 h-6 md:w-8 md:h-8"/>}
+                                                </div>
+                                                <div className="flex-1 w-full text-center md:text-left">
+                                                    <h3 className={`text-base md:text-xl font-black mb-1 md:mb-2 ${quest.claimed ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{quest.title}</h3>
+                                                    <div className="w-full bg-gray-200 rounded-full h-2 md:h-3 mb-1 overflow-hidden">
+                                                        <div className={`h-full transition-all ${isComplete ? 'bg-teal-500' : 'bg-orange-500'}`} style={{ width: `${Math.min(100, (quest.progress/quest.target)*100)}%` }}></div>
+                                                    </div>
+                                                    <p className="text-xs md:text-sm font-bold text-gray-500">{quest.progress} / {quest.target}</p>
+                                                </div>
+                                                <div className="w-full md:w-auto shrink-0 mt-2 md:mt-0">
+                                                    {quest.claimed ? (
+                                                        <button className="w-full md:w-auto px-4 py-2 md:px-6 md:py-3 bg-gray-100 text-gray-400 font-black rounded-lg md:rounded-xl cursor-not-allowed text-xs md:text-base">DIKLAIM</button>
+                                                    ) : isComplete ? (
+                                                        <button onClick={() => claimQuest(quest.id)} className="w-full md:w-auto px-6 py-2 md:px-8 md:py-3 bg-teal-500 hover:bg-teal-600 text-white font-black rounded-lg md:rounded-xl shadow-[0_3px_0_rgb(13,148,136)] active:translate-y-1 active:shadow-none transition-all text-xs md:text-base">KLAIM +{quest.reward}</button>
+                                                    ) : (
+                                                        <div className="px-4 py-2 md:px-6 md:py-3 bg-orange-50 text-orange-600 font-black rounded-lg md:rounded-xl border-2 border-orange-200 text-center text-xs md:text-base">+{quest.reward} Poin</div>
+                                                    )}
+                                                </div>
                                             </div>
-                                            {renderNumpad(inputAnswer, setInputAnswer, submitAnswer, false, true)}
-                                        </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+
+                if (view === 'map') {
+                    const unlockedLvl = userData?.unlockedLevel || 1;
+                    return (
+                        <div className="min-h-[100dvh] bg-blue-50 p-4 md:p-8 font-nunito flex flex-col items-center justify-start md:justify-center overflow-y-auto">
+                            <FullscreenButton />
+                            <div className="w-full max-w-lg md:max-w-3xl lg:max-w-5xl py-8 mt-4 md:mt-0">
+                                <div className="flex items-center gap-4 md:gap-6 mb-6 md:mb-12 bg-white p-4 md:p-6 rounded-[2rem] shadow-sm">
+                                    <button onClick={() => setView('menu')} className="p-3 md:p-4 bg-gray-100 rounded-full shadow-sm text-gray-600 hover:bg-gray-200"><ArrowLeft className="w-5 h-5 md:w-6 md:h-6"/></button>
+                                    <div>
+                                        <h2 className="text-2xl md:text-4xl font-black text-blue-900">Peta Nusantara</h2>
+                                        <p className="text-blue-600 font-bold text-xs md:text-base mt-1">Taklukkan pulau untuk membuka area baru!</p>
+                                    </div>
+                                </div>
+
+                                <div className="relative py-6 md:py-10 px-2 md:px-10">
+                                    <div className="absolute left-[50%] top-0 bottom-0 w-2 md:w-4 bg-blue-200 rounded-full -translate-x-1/2 z-0"></div>
+
+                                    <div className="space-y-6 md:space-y-12 relative z-10">
+                                        {ISLANDS.map((island, index) => {
+                                            const isUnlocked = island.id <= unlockedLvl;
+                                            const isCurrent = island.id === unlockedLvl;
+                                            
+                                            return (
+                                                <div key={island.id} className={`flex w-full ${island.align}`}>
+                                                    <button 
+                                                        onClick={() => { if(isUnlocked) { setLevel(island.id); setView('skin-select'); } }}
+                                                        disabled={!isUnlocked}
+                                                        className={`relative w-[90%] sm:w-[85%] md:w-[60%] lg:w-[45%] p-3 md:p-6 rounded-2xl md:rounded-[2rem] border-2 md:border-4 text-left transition-all group
+                                                            ${isUnlocked 
+                                                                ? `bg-gradient-to-r ${island.color} border-white shadow-lg md:shadow-xl hover:-translate-y-1 md:hover:-translate-y-2 hover:scale-[1.02] md:hover:scale-105` 
+                                                                : 'bg-gray-200 border-gray-300 opacity-60 grayscale'}
+                                                            ${isCurrent ? 'ring-4 md:ring-8 ring-yellow-400 ring-opacity-50 animate-pulse-slow' : ''}
+                                                        `}
+                                                    >
+                                                        <div className="flex items-center gap-3 md:gap-4">
+                                                            <div className="text-3xl md:text-5xl lg:text-6xl bg-white/20 w-12 h-12 md:w-16 md:h-16 lg:w-20 lg:h-20 flex items-center justify-center rounded-xl md:rounded-2xl shadow-inner shrink-0">
+                                                                {isUnlocked ? island.icon : <Lock className="text-gray-500 w-6 h-6 md:w-8 md:h-8"/>}
+                                                            </div>
+                                                            <div className="flex-1 text-white overflow-hidden">
+                                                                <div className="text-[10px] md:text-sm font-bold opacity-80 uppercase tracking-widest mb-0.5 md:mb-1">Pulau {island.id}</div>
+                                                                <h3 className="text-lg md:text-2xl lg:text-3xl font-black mb-1 drop-shadow-md truncate">{island.name}</h3>
+                                                                {isUnlocked && <p className="text-[10px] md:text-xs lg:text-sm font-bold bg-black/20 inline-block px-2 py-0.5 md:px-3 md:py-1 rounded-md md:rounded-lg truncate max-w-full">{island.desc}</p>}
+                                                            </div>
+                                                            {isUnlocked && <ChevronRight className="text-white/50 group-hover:text-white transition-colors w-6 h-6 md:w-8 md:h-8 shrink-0"/>}
+                                                        </div>
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+
+                if (view === 'leaderboard') {
+                    return (
+                        <div className="min-h-[100dvh] bg-amber-50 p-2 md:p-8 font-nunito flex flex-col items-center justify-center overflow-hidden">
+                            <FullscreenButton />
+                            <div className="w-full max-w-lg md:max-w-4xl lg:max-w-5xl bg-white rounded-2xl md:rounded-[2rem] shadow-xl overflow-hidden border-2 md:border-4 border-amber-200 flex flex-col h-[90dvh] md:h-[85vh]">
+                                <div className="bg-gradient-to-r from-amber-500 to-amber-600 p-4 md:p-8 flex items-center gap-3 md:gap-4 text-white relative shrink-0">
+                                    <button onClick={() => setView('menu')} className="p-2 md:p-3 bg-white/20 hover:bg-white/30 rounded-full backdrop-blur transition-colors"><ArrowLeft className="w-5 h-5 md:w-6 md:h-6"/></button>
+                                    <div className="flex-1">
+                                        <h2 className="text-xl md:text-3xl lg:text-4xl font-black flex items-center gap-2 md:gap-3">
+                                            <Medal fill="currentColor" className="w-5 h-5 md:w-8 md:h-8" /> Papan Peringkat
+                                        </h2>
+                                        <p className="font-bold text-amber-100 mt-0.5 md:text-base text-xs">Pembatik Terbaik Nasional</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex-1 overflow-y-auto p-2 md:p-6 space-y-2 md:space-y-4 bg-slate-50 custom-scrollbar">
+                                    {leaderboardData.length === 0 ? (
+                                        <div className="text-center text-gray-500 font-bold py-10">Belum ada data pemain. Jadilah yang pertama!</div>
+                                    ) : (
+                                        leaderboardData.map((player, index) => {
+                                            const isTop1 = index === 0;
+                                            const isTop3 = index < 3;
+                                            const pAvatarIcon = AVATARS.find(a => a.id === player.avatar)?.icon || '👤';
+
+                                            return (
+                                                <div key={player.id} className={`flex items-center gap-3 md:gap-4 p-3 md:p-6 rounded-xl md:rounded-2xl border-2 transition-all hover:scale-[1.01] ${isTop1 ? 'bg-amber-100 border-amber-400 shadow-lg' : isTop3 ? 'bg-white border-amber-200 shadow-md' : 'bg-white border-gray-200'}`}>
+                                                    <div className={`w-8 h-8 md:w-16 md:h-16 shrink-0 flex items-center justify-center rounded-lg md:rounded-2xl font-black text-lg md:text-3xl ${isTop1 ? 'bg-amber-500 text-white shadow-inner' : isTop3 ? 'bg-amber-200 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                        {index + 1}
+                                                    </div>
+                                                    
+                                                    <div className="text-2xl md:text-5xl shrink-0">{pAvatarIcon}</div>
+
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className={`text-base md:text-2xl font-black truncate flex items-center gap-2 ${isTop1 ? 'text-amber-800' : 'text-gray-800'}`}>
+                                                            {player.name}
+                                                            {isTop1 && <CantingEmas className="w-5 h-5 md:w-7 md:h-7 drop-shadow-md animate-pulse hidden sm:block" title="Pembatik Utama" />}
+                                                        </h3>
+                                                        <div className="flex flex-col md:flex-row items-start md:items-center gap-x-4 gap-y-0.5 md:gap-y-1 text-[10px] md:text-sm font-bold text-gray-500 mt-1">
+                                                            <span className="flex items-center gap-1 truncate"><School className="w-3 h-3 md:w-4 md:h-4"/> {player.school}</span>
+                                                            <span className="hidden md:inline">•</span>
+                                                            <span className="flex items-center gap-1 truncate"><MapPin className="w-3 h-3 md:w-4 md:h-4"/> {player.province}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right shrink-0">
+                                                        <p className="text-[10px] md:text-sm font-black text-gray-400 uppercase tracking-widest">Poin</p>
+                                                        <p className={`text-lg md:text-3xl lg:text-4xl font-black ${isTop1 ? 'text-amber-600' : 'text-orange-500'}`}>
+                                                            {player.points?.toLocaleString() || 0}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
                                     )}
                                 </div>
+                            </div>
+                        </div>
+                    );
+                }
+
+                if (view === 'multiplayer-setup') {
+                    return (
+                        <div className="min-h-[100dvh] bg-blue-50 p-4 md:p-8 font-nunito flex flex-col items-center justify-start md:justify-center overflow-y-auto">
+                            <FullscreenButton />
+                            <div className="bg-white p-5 md:p-10 rounded-3xl md:rounded-[2rem] shadow-xl w-full max-w-lg md:max-w-3xl mt-4 md:mt-0">
+                                <div className="flex items-center gap-4 mb-6 md:mb-8 border-b-2 border-gray-100 pb-4 md:pb-6">
+                                    <button onClick={() => setView('menu')} className="p-2 md:p-4 bg-gray-100 rounded-full shadow-sm text-gray-600 hover:bg-gray-200"><ArrowLeft className="w-5 h-5 md:w-6 md:h-6"/></button>
+                                    <div>
+                                        <h2 className="text-2xl md:text-4xl font-black text-blue-900">Persiapan Duel</h2>
+                                        <p className="text-blue-600 font-bold text-xs md:text-base mt-1">Layar akan terbagi menjadi dua bagian.</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 mb-6 md:mb-8">
+                                    <div className="bg-orange-50 p-4 md:p-6 rounded-2xl border-2 border-orange-200">
+                                        <label className="block text-xs md:text-base font-black text-orange-800 uppercase tracking-widest mb-1 md:mb-2">Pemain Kiri (Atas)</label>
+                                        <input type="text" className="w-full px-3 md:px-4 py-2 md:py-3 text-base md:text-xl font-bold bg-white border-2 border-orange-300 rounded-xl outline-none focus:border-orange-500" value={mpSetup.p1Name} onChange={e => setMpSetup({...mpSetup, p1Name: e.target.value})} />
+                                    </div>
+                                    <div className="bg-blue-50 p-4 md:p-6 rounded-2xl border-2 border-blue-200">
+                                        <label className="block text-xs md:text-base font-black text-blue-800 uppercase tracking-widest mb-1 md:mb-2">Pemain Kanan (Bawah)</label>
+                                        <input type="text" className="w-full px-3 md:px-4 py-2 md:py-3 text-base md:text-xl font-bold bg-white border-2 border-blue-300 rounded-xl outline-none focus:border-blue-500" value={mpSetup.p2Name} onChange={e => setMpSetup({...mpSetup, p2Name: e.target.value})} />
+                                    </div>
+                                </div>
+
+                                <div className="mb-6 md:mb-8">
+                                    <label className="block text-sm md:text-lg font-black text-gray-700 mb-2 md:mb-3">Tingkat Kesulitan Soal</label>
+                                    <div className="flex gap-2 md:gap-4">
+                                        {[1, 2, 3].map(l => (
+                                            <button key={l} onClick={() => setMpSetup({...mpSetup, level: l})} className={`flex-1 py-3 md:py-6 rounded-xl md:rounded-2xl font-black text-base md:text-2xl transition-all border-2 md:border-4 ${mpSetup.level === l ? 'bg-blue-100 border-blue-500 text-blue-700 scale-105 shadow-md' : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100'}`}>Lvl {l}</button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <button onClick={startMultiplayer} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 md:py-6 rounded-xl md:rounded-2xl font-black text-lg md:text-3xl shadow-[0_4px_0_rgb(30,58,138)] md:shadow-[0_6px_0_rgb(30,58,138)] active:shadow-none active:translate-y-1 md:active:translate-y-2 transition-all uppercase tracking-widest flex items-center justify-center gap-2 md:gap-4">
+                                    <Swords className="w-6 h-6 md:w-8 md:h-8" /> MULAI DUEL!
+                                </button>
                             </div>
                         </div>
                     );
@@ -1014,6 +1200,85 @@
                     );
                 }
 
+                if (view === 'game') {
+                    const isFever = feverTimer > 0;
+                    const bgClass = isFever ? 'bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500' : 'bg-gray-900';
+                    const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
+
+                    return (
+                        <div className={`fixed inset-0 flex flex-col items-center font-nunito p-2 md:p-6 lg:p-8 transition-colors duration-500 ${bgClass}`} style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}>
+                            <FullscreenButton />
+                            {floatingTexts.map(ft => ( <FloatingText key={ft.id} text={ft.text} x={ft.x} y={ft.y} onComplete={() => setFloatingTexts(prev => prev.filter(t => t.id !== ft.id))} /> ))}
+
+                            {isFever && (
+                                <div className="w-full max-w-[90%] md:max-w-3xl bg-black/30 rounded-full h-1.5 md:h-3 mb-2 md:mb-4 overflow-hidden backdrop-blur-sm border border-yellow-300 shadow-[0_0_10px_rgba(250,204,21,0.6)] shrink-0">
+                                    <div className="h-full bg-yellow-400 shadow-[0_0_10px_#fff]" style={{ width: `${(feverTimer/10)*100}%`, transition: 'width 1s linear' }}></div>
+                                </div>
+                            )}
+
+                            <div className="w-full max-w-5xl flex flex-col lg:flex-row items-center lg:items-stretch justify-center flex-1 gap-2 md:gap-6 min-h-0 w-full pb-2">
+                                
+                                {/* Header Panel */}
+                                <div className="w-full lg:w-1/3 flex flex-row lg:flex-col justify-between items-center bg-gray-800 rounded-[1.5rem] lg:rounded-3xl p-3 md:p-6 shadow-xl border-b-4 md:border-b-8 lg:border-b-0 lg:border-r-8 border-gray-950 shrink-0 gap-2">
+                                    <div className="flex flex-col md:flex-row lg:flex-col items-center gap-1 md:gap-2 text-red-500 shrink-0">
+                                        <div className="flex gap-0.5 md:gap-1">
+                                            {[...Array(3)].map((_, i) => <Heart key={i} fill={i < lives ? "currentColor" : "none"} className={`w-4 h-4 sm:w-5 sm:h-5 md:w-8 md:h-8 ${i >= lives ? "text-white/20" : ""}`} />)}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="text-center flex-1 lg:flex-none">
+                                        <div className="text-[10px] md:text-sm lg:text-base font-bold uppercase tracking-widest text-gray-400 truncate max-w-[120px] sm:max-w-[180px] lg:max-w-none mx-auto">{currentIsland.name}</div>
+                                        <div className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black text-white leading-none mt-0.5 md:mt-1">{score}</div>
+                                        {isFever && <div className="text-[8px] md:text-xs lg:text-sm font-black text-yellow-300 animate-pulse mt-0.5 md:mt-1">🔥 x3 POINT 🔥</div>}
+                                    </div>
+                                    
+                                    <div className={`px-2 py-1 md:px-4 md:py-2 rounded-lg md:rounded-xl flex items-center justify-center gap-1 md:gap-2 shrink-0 min-w-[50px] md:min-w-[80px] ${isFever ? 'bg-red-600' : 'bg-gray-700'}`}>
+                                        <Clock className={`w-3 h-3 sm:w-4 sm:h-4 md:w-6 md:h-6 ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-yellow-400'}`}/>
+                                        <span className={`font-black text-base md:text-xl lg:text-2xl leading-none ${timeLeft <= 10 && !isFever ? 'text-red-500' : 'text-white'}`}>{timeLeft}s</span>
+                                    </div>
+                                </div>
+
+                                {/* Game Area */}
+                                <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 w-full overflow-hidden gap-2">
+                                    {!selectedBlock ? (
+                                        <div className={`shadow-xl relative border-4 md:border-8 rounded-2xl md:rounded-[2rem] p-1.5 md:p-4 w-full max-w-[min(100%,_45vh)] lg:max-w-[min(100%,_65vh)] aspect-square shrink-0 ${isFever ? 'bg-orange-600 border-yellow-400' : 'bg-gray-800 border-gray-700'}`}>
+                                            <div className="absolute inset-1.5 md:inset-4 rounded-xl md:rounded-2xl bg-cover bg-center opacity-80" style={{ backgroundImage: `url(${activeBatik.bgImage})`}}></div>
+                                            <div className="grid grid-cols-4 grid-rows-4 gap-1 md:gap-2 w-full h-full relative z-10">
+                                                {grid.map(b => (
+                                                    <button key={b.id} onPointerDown={(e) => { e.preventDefault(); if(b.active) { setSelectedBlock(b); setInputAnswer(''); setFeedback(null); }}}
+                                                        className={`rounded-md md:rounded-xl transition-all transform flex items-center justify-center font-bold text-lg md:text-3xl shadow-[0_2px_0_rgba(0,0,0,0.3)] md:shadow-[0_4px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-0.5 select-none
+                                                            ${!b.active ? 'opacity-0 pointer-events-none scale-50' : 'opacity-100 scale-100'}
+                                                            ${b.isSpecial ? 'bg-gradient-to-br from-yellow-400 to-amber-500' : (isFever ? 'bg-gradient-to-br from-red-500 to-orange-500' : 'bg-gradient-to-br from-blue-400 to-blue-600')}`}>
+                                                        {b.active && (b.isSpecial ? <span className="text-white drop-shadow-md">★</span> : <span className="text-white/30 text-sm md:text-2xl">?</span>)}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-white rounded-2xl md:rounded-3xl p-3 md:p-6 shadow-2xl w-[95%] max-w-sm md:max-w-lg border-2 md:border-4 border-gray-200 flex flex-col justify-center shrink-0">
+                                            <div className="flex justify-between items-center mb-3 md:mb-6">
+                                                <button onPointerDown={(e) => { e.preventDefault(); setSelectedBlock(null); }} className="text-gray-400 bg-gray-100 p-2 md:p-3 rounded-full hover:bg-gray-200 select-none"><ArrowLeft className="w-5 h-5 md:w-6 md:h-6"/></button>
+                                                <div className="text-2xl sm:text-3xl md:text-5xl font-black text-gray-800 tracking-wider text-center flex-1">
+                                                    {selectedBlock.q.text} = <span className={`inline-block min-w-[50px] md:min-w-[80px] text-center border-b-2 md:border-b-4 pb-0.5 md:pb-1 ${feedback === 'wrong' ? 'border-red-500 text-red-500' : 'border-blue-500 text-blue-600'}`}>{inputAnswer || '?'}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-center gap-2 md:gap-4 mb-3 md:mb-6">
+                                                <button onPointerDown={(e) => { e.preventDefault(); if(powerups?.hint>0){ setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, hint: p.hint-1}))} }} disabled={powerups?.hint <= 0} className="flex items-center gap-1 md:gap-2 bg-green-100 text-green-700 px-3 md:px-4 py-2 md:py-2 rounded-full font-bold text-[10px] md:text-sm disabled:opacity-50 select-none">
+                                                    <Lightbulb className="w-3 h-3 md:w-4 md:h-4"/> Petunjuk ({powerups?.hint || 0})
+                                                </button>
+                                                <button onPointerDown={(e) => { e.preventDefault(); if(powerups?.bomb>0){ updateQuestProgress('use_bomb'); setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, bomb: p.bomb-1})); setTimeout(()=>submitAnswer(e), 100); } }} disabled={powerups?.bomb <= 0} className="flex items-center gap-1 md:gap-2 bg-red-100 text-red-700 px-3 md:px-4 py-2 md:py-2 rounded-full font-bold text-[10px] md:text-sm disabled:opacity-50 select-none">
+                                                    <Bomb className="w-3 h-3 md:w-4 md:h-4"/> Bom ({powerups?.bomb || 0})
+                                                </button>
+                                            </div>
+                                            {renderNumpad(inputAnswer, setInputAnswer, submitAnswer, false, true)}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+
                 if (view === 'gameover' || view === 'win') {
                     const isWin = view === 'win';
                     const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
@@ -1113,7 +1378,7 @@
                 <React.Fragment>
                     {dailyPopup.show && (
                         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-                            <div className="bg-white rounded-[2rem] p-5 md:p-8 max-w-sm md:max-w-md w-full text-center shadow-2xl transform transition-all animate-bounce-in border-2 md:border-4 border-amber-200">
+                            <div className="bg-white rounded-2xl md:rounded-[2rem] p-5 md:p-8 max-w-sm md:max-w-md w-full text-center shadow-2xl transform transition-all animate-bounce-in border-2 md:border-4 border-amber-200">
                                 <div className="text-5xl md:text-7xl mb-1 md:mb-2">🎁</div>
                                 <h2 className="text-2xl md:text-4xl font-black text-amber-500 mb-1 md:mb-2">Hadiah Harian!</h2>
                                 <p className="text-gray-600 font-bold text-xs md:text-base mb-3 md:mb-4">Terima kasih sudah kembali belajar hari ini.</p>
@@ -1144,7 +1409,7 @@
 
                                 <button 
                                     onClick={() => setDailyPopup({ ...dailyPopup, show: false })}
-                                    className="w-full bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white py-3 md:py-4 rounded-lg md:rounded-xl font-black text-base md:text-xl shadow-[0_4px_0_rgb(180,83,9)] active:translate-y-1 active:shadow-none transition-all uppercase tracking-wider"
+                                    className="w-full bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white py-3 md:py-4 rounded-lg md:rounded-xl font-black text-base md:text-xl shadow-[0_4px_0_rgb(180,83,9)] md:shadow-[0_6px_0_rgb(180,83,9)] active:translate-y-1 active:shadow-none transition-all uppercase tracking-wider"
                                 >
                                     Siap Berpetualang!
                                 </button>
