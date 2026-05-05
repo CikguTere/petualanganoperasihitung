@@ -31,9 +31,18 @@
             0% { transform: translateY(0) scale(1); opacity: 1; }
             100% { transform: translateY(-50px) scale(1.2); opacity: 0; }
         }
-        .animate-pulse-slow {
-            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
+        @keyframes bounceIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .animate-bounce-in { animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
     </style>
 
     <!-- Babel Standalone untuk kompilasi JSX di Browser -->
@@ -164,9 +173,13 @@
             const [view, setView] = useState('loading');
             const [loginForm, setLoginForm] = useState({ name: '', province: '', school: '' });
             const [isFullscreen, setIsFullscreen] = useState(false);
+            
+            // Pop-Up State
+            const [dailyPopup, setDailyPopup] = useState({ show: false, streak: 0, bonus: 0, quests: [] });
+            
             const timerRef = useRef(null);
             
-            // --- Single Player State (TIME ATTACK & FEVER) ---
+            // --- Single Player State ---
             const [activeBatik, setActiveBatik] = useState(BATIKS[0]);
             const [level, setLevel] = useState(1);
             const [grid, setGrid] = useState([]);
@@ -181,7 +194,6 @@
             const [powerups, setPowerups] = useState({ bomb: 3, hint: 5 });
             const [floatingTexts, setFloatingTexts] = useState([]);
 
-            // State Refs (Mencegah Stale Closure pada Timer/Callback)
             const scoreRef = useRef(0);
             const userDataRef = useRef(userData);
             
@@ -198,7 +210,7 @@
 
             // --- Firebase Init ---
             const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'batik-matika-v6';
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'batik-matika-v7';
             
             useEffect(() => {
                 if (!firebaseConfig) { setView('landing'); return; }
@@ -238,7 +250,6 @@
                 const lbRef = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
                 const unsubLb = onSnapshot(lbRef, (snap) => {
                     const rawData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    
                     const uniquePlayersMap = new Map();
                     rawData.forEach(player => {
                         const key = `${player.name}_${player.school}_${player.province}`.toLowerCase().trim();
@@ -246,7 +257,6 @@
                             uniquePlayersMap.set(key, player);
                         }
                     });
-                    
                     const data = Array.from(uniquePlayersMap.values());
                     data.sort((a, b) => (b.points || 0) - (a.points || 0));
                     setLeaderboardData(data);
@@ -255,7 +265,7 @@
                 return () => { unsubProfile(); unsubLb(); };
             }, [user]);
 
-            // --- SISTEM DAILY QUESTS & STREAK ---
+            // --- SISTEM DAILY QUESTS & STREAK DENGAN POP-UP ---
             const checkDailyLogin = (data) => {
                 const today = new Date().toDateString();
                 const yesterdayDate = new Date();
@@ -264,34 +274,42 @@
 
                 let updates = {};
                 let needUpdate = false;
+                let showPopup = false;
+                let currentStreak = data.loginStreak || 0;
+                let currentBonus = 0;
+                let currentQuests = data.quests || QUEST_TEMPLATES.map(q => ({ ...q, progress: 0, claimed: false }));
 
                 // Cek Login Streak
                 if (data.lastLoginDate !== today) {
                     updates.lastLoginDate = today;
                     if (data.lastLoginDate === yesterday) {
-                        updates.loginStreak = (data.loginStreak || 0) + 1;
+                        currentStreak += 1;
                     } else {
-                        updates.loginStreak = 1;
+                        currentStreak = 1;
                     }
+                    updates.loginStreak = currentStreak;
                     
-                    // Beri bonus streak harian (Contoh: 50 poin * Streak)
-                    const streakBonus = updates.loginStreak * 50;
-                    updates.points = (data.points || 0) + streakBonus;
+                    currentBonus = currentStreak * 50;
+                    updates.points = (data.points || 0) + currentBonus;
                     
-                    alert(`🌟 Hadiah Login Harian!\nStreak: ${updates.loginStreak} Hari\nBonus: +${streakBonus} Poin`);
+                    showPopup = true;
                     needUpdate = true;
                 }
 
                 // Cek Quests (Reset tiap hari)
                 if (data.lastQuestDate !== today) {
                     updates.lastQuestDate = today;
-                    // Reset misi
-                    updates.quests = QUEST_TEMPLATES.map(q => ({ ...q, progress: 0, claimed: false }));
+                    currentQuests = QUEST_TEMPLATES.map(q => ({ ...q, progress: 0, claimed: false }));
+                    updates.quests = currentQuests;
                     needUpdate = true;
                 }
 
                 if (needUpdate) {
                     saveUserData(updates);
+                }
+
+                if (showPopup) {
+                    setDailyPopup({ show: true, streak: currentStreak, bonus: currentBonus, quests: currentQuests });
                 }
             };
 
@@ -308,9 +326,7 @@
                     return q;
                 });
 
-                if (hasChanges) {
-                    saveUserData({ quests: newQuests });
-                }
+                if (hasChanges) saveUserData({ quests: newQuests });
             };
 
             const claimQuest = (questId) => {
@@ -341,7 +357,6 @@
                     const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main');
                     await setDoc(profileRef, { ...newData, updatedAt: serverTimestamp() }, { merge: true });
 
-                    // Sinkron ke Leaderboard
                     if (newData.name || newData.school || newData.province || newData.points !== undefined || newData.activeAvatar) {
                         const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', user.uid);
                         const lbUpdate = {
@@ -352,9 +367,7 @@
                             avatar: newData.activeAvatar || userDataRef.current?.activeAvatar || 'default',
                             updatedAt: serverTimestamp()
                         };
-                        
                         if (newData.points !== undefined) lbUpdate.points = newData.points;
-                        
                         await setDoc(publicRef, lbUpdate, { merge: true });
                     }
                 } catch (e) { console.error("Save Data Error", e); }
@@ -362,7 +375,6 @@
 
             const recordGamePoints = async (earnedPoints) => {
                 if (earnedPoints <= 0) return;
-                
                 setUserData(prev => ({ ...prev, points: (prev?.points || 0) + earnedPoints }));
 
                 if (user && firebaseConfig) {
@@ -410,7 +422,7 @@
                     points: recoveredPoints, 
                     unlockedLevel: recoveredLevel, 
                     activeAvatar: recoveredAvatar,
-                    ownedAvatars: ['default', recoveredAvatar], // Pastikan punya avatar yang di-recover
+                    ownedAvatars: ['default', recoveredAvatar],
                     ownedBatiks: [],
                     powerups: { bomb: 3, hint: 5 }
                 };
@@ -421,10 +433,7 @@
 
             const handleLogout = async () => {
                 const auth = getAuth();
-                try {
-                    await signOut(auth); // Memastikan data pemain sebelumnya dibersihkan
-                } catch (error) { console.error("Logout Error:", error); }
-                
+                try { await signOut(auth); } catch (error) { console.error("Logout Error:", error); }
                 setLoginForm({ name: '', province: '', school: '' });
                 setView('landing');
             };
@@ -436,9 +445,7 @@
                     const newOwned = [...(userData?.ownedBatiks || []), batik.id];
                     saveUserData({ points: newPoints, ownedBatiks: newOwned });
                     alert(`Berhasil membuka Motif ${batik.name}!`);
-                } else {
-                    alert("Poin kamu belum cukup untuk membeli motif ini.");
-                }
+                } else { alert("Poin kamu belum cukup untuk membeli motif ini."); }
             };
 
             const buyAvatar = (avatar) => {
@@ -448,14 +455,10 @@
                     const newOwned = [...(userData?.ownedAvatars || ['default']), avatar.id];
                     saveUserData({ points: newPoints, ownedAvatars: newOwned, activeAvatar: avatar.id });
                     alert(`Berhasil mendapatkan Profil ${avatar.name}!`);
-                } else {
-                    alert("Poin kamu belum cukup untuk mendapatkan profil ini.");
-                }
+                } else { alert("Poin kamu belum cukup untuk mendapatkan profil ini."); }
             };
 
-            const equipAvatar = (avatarId) => {
-                saveUserData({ activeAvatar: avatarId });
-            };
+            const equipAvatar = (avatarId) => { saveUserData({ activeAvatar: avatarId }); };
 
             const toggleFullscreen = () => {
                 if (!document.fullscreenElement) {
@@ -469,9 +472,9 @@
             // --- Game Logic Dinamis Berdasarkan Pulau (Level) ---
             const generateQuestion = (lvl) => {
                 let types = ['add'];
-                if (lvl >= 2) types.push('sub'); // Jawa
-                if (lvl >= 3) types.push('mul'); // Kalimantan
-                if (lvl >= 4) types.push('div'); // Bali & NTT
+                if (lvl >= 2) types.push('sub'); 
+                if (lvl >= 3) types.push('mul'); 
+                if (lvl >= 4) types.push('div'); 
                 
                 const type = types[Math.floor(Math.random() * types.length)];
                 let n1, n2, ans, text;
@@ -512,7 +515,7 @@
                                 clearInterval(timer);
                                 recordGamePoints(scoreRef.current);
                                 setView('gameover');
-                                updateQuestProgress('play_solo'); // Quest Trigger
+                                updateQuestProgress('play_solo'); 
                                 return 0;
                             }
                             return prev - 1;
@@ -545,8 +548,7 @@
                     setFeedback('correct');
                     const newCombo = combo + 1; 
                     setCombo(newCombo);
-                    
-                    updateQuestProgress('answer_correct'); // Quest Trigger
+                    updateQuestProgress('answer_correct'); 
                     
                     let isTriggeringFever = false;
                     let currentFever = feverTimer;
@@ -564,7 +566,6 @@
                     
                     setScore(s => s + earned);
                     setTimeLeft(prev => prev + 3);
-                    
                     setFloatingTexts(prev => [...prev, { id: Date.now()+Math.random(), text: `+${earned} (+3s)`, x, y: y - 50 }]);
 
                     setTimeout(() => {
@@ -576,9 +577,8 @@
                             const bonus = timeLeft * 10 + lives * 50; 
                             const totalLevelScore = score + bonus + earned; 
                             setScore(totalLevelScore);
-                            
                             recordGamePoints(totalLevelScore);
-                            updateQuestProgress('play_solo'); // Quest Trigger
+                            updateQuestProgress('play_solo'); 
                             
                             const currentUnlocked = userDataRef.current?.unlockedLevel || 1;
                             const nextLevel = level + 1;
@@ -600,14 +600,13 @@
                         setInputAnswer(''); 
                         if (lives <= 1) { 
                             recordGamePoints(scoreRef.current);
-                            updateQuestProgress('play_solo'); // Quest Trigger
+                            updateQuestProgress('play_solo'); 
                             setView('gameover'); 
                         } 
                     }, 800);
                 }
             };
 
-            // --- Multiplayer Handlers ---
             const startMultiplayer = () => {
                 setMpState({
                     p1: { score: 0, lives: 3, grid: generateGrid(mpSetup.level), activeBlock: null, input: '', feedback: null },
@@ -623,7 +622,7 @@
                         setMpState(prev => {
                             if (prev.timer <= 1) { 
                                 clearInterval(timerRef.current); 
-                                updateQuestProgress('play_duel'); // Quest Trigger
+                                updateQuestProgress('play_duel'); 
                                 return { ...prev, timer: 0, winner: 'draw' }; 
                             }
                             return { ...prev, timer: prev.timer - 1 };
@@ -647,7 +646,7 @@
                         let newState = { ...prev, [pKey]: { ...prev[pKey], feedback: 'correct', score: prev[pKey].score + (player.activeBlock.isSpecial ? 200 : 100) } };
                         if (isFinished && !prev.winner) {
                             newState.winner = pKey;
-                            updateQuestProgress('play_duel'); // Quest Trigger
+                            updateQuestProgress('play_duel'); 
                         }
                         return newState;
                     });
@@ -661,7 +660,7 @@
                         let newState = { ...prev, [pKey]: { ...prev[pKey], feedback: 'wrong', lives: newLives } };
                         if (newLives <= 0 && !prev.winner) {
                             newState.winner = pKey === 'p1' ? 'p2' : 'p1';
-                            updateQuestProgress('play_duel'); // Quest Trigger
+                            updateQuestProgress('play_duel'); 
                         }
                         return newState;
                     });
@@ -669,7 +668,6 @@
                 }
             };
 
-            // --- Renderers ---
             const FullscreenButton = () => (
                 <button onClick={toggleFullscreen} className="fixed top-4 right-4 z-50 p-3 bg-white/20 backdrop-blur border border-white/30 text-white rounded-full shadow-lg hover:bg-white/40 transition-all">
                     {isFullscreen ? <Minimize size={24} /> : <Maximize size={24} />}
@@ -700,658 +698,708 @@
                 return currentAvatar ? currentAvatar.icon : '👤';
             };
 
-            if (view === 'loading') return <div className="min-h-[100dvh] bg-orange-50 flex items-center justify-center font-nunito"><div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-600"></div></div>;
+            // --- VIEW ROUTER ---
+            const renderView = () => {
+                if (view === 'loading') return <div className="min-h-[100dvh] bg-orange-50 flex items-center justify-center font-nunito"><div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-600"></div></div>;
 
-            if (view === 'landing' || view === 'login') return (
-                <div className="min-h-[100dvh] bg-gradient-to-b from-orange-100 to-orange-300 flex flex-col items-center p-4 font-nunito overflow-y-auto">
-                    <FullscreenButton />
-                    <div className="bg-white p-6 md:p-8 lg:p-10 rounded-[2rem] shadow-2xl w-full max-w-lg md:max-w-xl text-center mt-10 md:mt-20 mb-10 transition-all">
-                        <div className="w-20 h-20 md:w-24 md:h-24 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-4 border-4 md:border-8 border-orange-200 shadow-inner">
-                            <Zap size={40} className="md:w-14 md:h-14" />
-                        </div>
-                        <h1 className="text-4xl md:text-5xl font-black text-orange-800 mb-2 drop-shadow-sm">Batik Matika</h1>
-                        <p className="text-lg md:text-xl text-orange-600 font-bold mb-8">Daftar untuk Menyimpan Progres!</p>
-                        <form onSubmit={handleLogin} className="space-y-4 md:space-y-5 text-left">
-                            <div>
-                                <label className="block text-sm md:text-base font-black text-gray-700 mb-2 flex items-center gap-2"><User size={18}/> Nama Pembatik</label>
-                                <input required type="text" className="w-full px-5 py-3 md:py-4 text-base md:text-lg bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-orange-500 focus:ring-0 outline-none transition-colors font-bold text-gray-800" placeholder="Ketik namamu..." value={loginForm.name} onChange={e => setLoginForm({...loginForm, name: e.target.value})} />
-                            </div>
-                            <div>
-                                <label className="block text-sm md:text-base font-black text-gray-700 mb-2 flex items-center gap-2"><School size={18}/> Nama Sekolah</label>
-                                <input required type="text" className="w-full px-5 py-3 md:py-4 text-base md:text-lg bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-orange-500 focus:ring-0 outline-none transition-colors font-bold text-gray-800" placeholder="Misal: SDN Nusantara 1" value={loginForm.school} onChange={e => setLoginForm({...loginForm, school: e.target.value})} />
-                            </div>
-                            <div>
-                                <label className="block text-sm md:text-base font-black text-gray-700 mb-2 flex items-center gap-2"><MapPin size={18}/> Asal Provinsi</label>
-                                <input required type="text" className="w-full px-5 py-3 md:py-4 text-base md:text-lg bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-orange-500 focus:ring-0 outline-none transition-colors font-bold text-gray-800" placeholder="Misal: Jawa Tengah" value={loginForm.province} onChange={e => setLoginForm({...loginForm, province: e.target.value})} />
-                            </div>
-                            <button type="submit" className="w-full mt-4 bg-orange-500 hover:bg-orange-600 text-white py-4 md:py-5 rounded-2xl font-black text-xl md:text-2xl shadow-[0_6px_0_rgb(194,65,12)] active:shadow-[0_0px_0_rgb(194,65,12)] active:translate-y-1 transition-all uppercase tracking-wider">
-                                Masuk Kelas!
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            );
-
-            if (view === 'menu') {
-                const rank = RANKS.slice().reverse().find(r => (userData?.points || 0) >= r.min) || RANKS[0];
-                return (
-                    <div className="min-h-[100dvh] bg-gray-50 p-4 md:p-8 font-nunito flex flex-col items-center overflow-y-auto">
+                if (view === 'landing' || view === 'login') return (
+                    <div className="min-h-[100dvh] bg-gradient-to-b from-orange-100 to-orange-300 flex flex-col items-center p-4 font-nunito overflow-y-auto">
                         <FullscreenButton />
-                        <div className="w-full max-w-lg md:max-w-4xl lg:max-w-6xl space-y-6 mt-8 mb-12">
-                            
-                            {/* Header Controls: Tombol Keluar */}
-                            <div className="flex justify-end w-full">
-                                <button onClick={handleLogout} className="flex items-center gap-2 bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl font-black text-sm md:text-base transition-all shadow-sm">
-                                    <LogOut size={20} /> Ganti Pemain
-                                </button>
+                        <div className="bg-white p-6 md:p-8 lg:p-10 rounded-[2rem] shadow-2xl w-full max-w-lg md:max-w-xl text-center my-auto transition-all">
+                            <div className="w-20 h-20 md:w-24 md:h-24 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-4 border-4 md:border-8 border-orange-200 shadow-inner">
+                                <Zap size={40} className="md:w-14 md:h-14" />
                             </div>
-
-                            <div className="bg-white rounded-[2rem] p-6 md:p-8 lg:p-10 shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-48 h-48 bg-orange-100 rounded-bl-full -z-10 opacity-50"></div>
-                                <div className="text-5xl md:text-6xl lg:text-7xl bg-gray-100 w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 flex items-center justify-center rounded-[2rem] shadow-inner border-4 border-gray-200 shrink-0">
-                                    {getActiveAvatarIcon()}
+                            <h1 className="text-4xl md:text-5xl font-black text-orange-800 mb-2 drop-shadow-sm">Batik Matika</h1>
+                            <p className="text-lg md:text-xl text-orange-600 font-bold mb-8">Daftar untuk Menyimpan Progres!</p>
+                            <form onSubmit={handleLogin} className="space-y-4 md:space-y-5 text-left">
+                                <div>
+                                    <label className="block text-sm md:text-base font-black text-gray-700 mb-2 flex items-center gap-2"><User size={18}/> Nama Pembatik</label>
+                                    <input required type="text" className="w-full px-5 py-3 md:py-4 text-base md:text-lg bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-orange-500 focus:ring-0 outline-none transition-colors font-bold text-gray-800" placeholder="Ketik namamu..." value={loginForm.name} onChange={e => setLoginForm({...loginForm, name: e.target.value})} />
                                 </div>
-                                <div className="text-center md:text-left flex-1">
-                                    <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-800 mb-2">{userData?.name}</h2>
-                                    <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4 text-sm md:text-base font-bold text-gray-500 justify-center md:justify-start">
-                                        <span className="flex items-center gap-1"><School size={16}/> {userData?.school}</span>
-                                        <span className="hidden md:inline">•</span>
-                                        <span className="flex items-center gap-1"><MapPin size={16}/> {userData?.province}</span>
-                                    </div>
-                                    <div className={`mt-4 inline-flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 rounded-xl ${rank.bg} ${rank.color} font-black text-sm md:text-base lg:text-lg uppercase tracking-wide`}>
-                                        <Trophy size={20} /> {rank.title}
-                                    </div>
+                                <div>
+                                    <label className="block text-sm md:text-base font-black text-gray-700 mb-2 flex items-center gap-2"><School size={18}/> Nama Sekolah</label>
+                                    <input required type="text" className="w-full px-5 py-3 md:py-4 text-base md:text-lg bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-orange-500 focus:ring-0 outline-none transition-colors font-bold text-gray-800" placeholder="Misal: SDN Nusantara 1" value={loginForm.school} onChange={e => setLoginForm({...loginForm, school: e.target.value})} />
                                 </div>
-                                <div className="text-center md:text-right bg-orange-50 p-4 md:p-6 rounded-2xl border-2 border-orange-100 min-w-[200px]">
-                                    <p className="text-sm md:text-base font-bold text-orange-400 uppercase tracking-widest mb-1">Total Poin</p>
-                                    <p className="text-4xl md:text-5xl lg:text-6xl font-black text-orange-500">{userData?.points?.toLocaleString() || 0}</p>
+                                <div>
+                                    <label className="block text-sm md:text-base font-black text-gray-700 mb-2 flex items-center gap-2"><MapPin size={18}/> Asal Provinsi</label>
+                                    <input required type="text" className="w-full px-5 py-3 md:py-4 text-base md:text-lg bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-orange-500 focus:ring-0 outline-none transition-colors font-bold text-gray-800" placeholder="Misal: Jawa Tengah" value={loginForm.province} onChange={e => setLoginForm({...loginForm, province: e.target.value})} />
                                 </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 lg:gap-8">
-                                <button onClick={() => setView('map')} className="col-span-2 bg-gradient-to-br from-emerald-500 to-green-600 p-6 md:p-8 lg:p-10 rounded-[2rem] text-white shadow-[0_8px_0_rgb(21,128,61)] active:shadow-[0_0px_0_rgb(21,128,61)] active:translate-y-2 transition-all flex flex-col items-center md:items-start text-left relative overflow-hidden group">
-                                    <div className="absolute -right-10 -bottom-10 opacity-20 group-hover:scale-110 transition-transform"><MapIcon size={150}/></div>
-                                    <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 rounded-2xl flex items-center justify-center mb-4 md:mb-6 backdrop-blur-sm"><Play fill="currentColor" size={32} /></div>
-                                    <h3 className="text-3xl md:text-4xl font-black mb-1">Petualangan</h3>
-                                    <p className="font-bold text-green-100 text-sm md:text-base">Jelajahi Peta Nusantara!</p>
+                                <button type="submit" className="w-full mt-4 bg-orange-500 hover:bg-orange-600 text-white py-4 md:py-5 rounded-2xl font-black text-xl md:text-2xl shadow-[0_6px_0_rgb(194,65,12)] active:shadow-[0_0px_0_rgb(194,65,12)] active:translate-y-1 transition-all uppercase tracking-wider">
+                                    Masuk Kelas!
                                 </button>
-
-                                <button onClick={() => setView('multiplayer-setup')} className="col-span-2 bg-gradient-to-br from-blue-500 to-blue-700 p-6 md:p-8 lg:p-10 rounded-[2rem] text-white shadow-[0_8px_0_rgb(29,78,216)] active:shadow-[0_0px_0_rgb(29,78,216)] active:translate-y-2 transition-all flex flex-col items-center md:items-start text-left relative overflow-hidden group">
-                                    <div className="absolute -right-10 -bottom-10 opacity-20 group-hover:scale-110 transition-transform"><Swords size={150}/></div>
-                                    <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 rounded-2xl flex items-center justify-center mb-4 md:mb-6 backdrop-blur-sm"><Users fill="currentColor" size={32} /></div>
-                                    <h3 className="text-3xl md:text-4xl font-black mb-1">Mode Duel</h3>
-                                    <p className="font-bold text-blue-100 text-sm md:text-base">Tantang Temanmu (1 vs 1)</p>
-                                </button>
-
-                                <button onClick={() => setView('avatar-shop')} className="col-span-1 md:col-span-2 bg-white border-4 border-pink-200 p-4 md:p-6 rounded-[2rem] text-pink-600 shadow-[0_6px_0_rgb(24bc,191,214)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-4 hover:border-pink-400">
-                                    <div className="text-3xl md:text-4xl">🦊</div>
-                                    <div className="text-left">
-                                        <h3 className="text-xl md:text-2xl font-black">Toko Avatar</h3>
-                                        <p className="text-xs md:text-sm font-bold text-pink-400">Beli profil lucu</p>
-                                    </div>
-                                </button>
-
-                                <button onClick={() => setView('quests')} className="col-span-1 md:col-span-2 bg-white border-4 border-teal-200 p-4 md:p-6 rounded-[2rem] text-teal-600 shadow-[0_6px_0_rgb(153,246,228)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-4 hover:border-teal-400 relative">
-                                    {userData?.quests?.some(q => q.progress >= q.target && !q.claimed) && <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full border-2 border-white animate-bounce"></div>}
-                                    <div className="text-3xl md:text-4xl">📜</div>
-                                    <div className="text-left">
-                                        <h3 className="text-xl md:text-2xl font-black">Misi Harian</h3>
-                                        <p className="text-xs md:text-sm font-bold text-teal-400">Klaim hadiah harian</p>
-                                    </div>
-                                </button>
-
-                                <button onClick={() => setView('leaderboard')} className="col-span-2 md:col-span-4 bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 p-6 md:p-8 rounded-[2rem] text-white shadow-[0_8px_0_rgb(180,83,9)] active:shadow-[0_0px_0_rgb(180,83,9)] active:translate-y-2 transition-all flex items-center justify-between relative overflow-hidden group">
-                                    <div className="absolute right-10 top-1/2 -translate-y-1/2 opacity-30 group-hover:scale-125 transition-transform"><CantingEmas size={120} /></div>
-                                    <div className="text-left relative z-10 flex items-center gap-6">
-                                        <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm"><Medal fill="currentColor" size={36} /></div>
-                                        <div>
-                                            <h3 className="text-3xl md:text-4xl font-black mb-1 drop-shadow-md">Pembatik Terbaik</h3>
-                                            <p className="font-bold text-amber-100 text-base md:text-lg">Lihat Papan Peringkat Nasional</p>
-                                        </div>
-                                    </div>
-                                </button>
-                            </div>
+                            </form>
                         </div>
                     </div>
                 );
-            }
 
-            if (view === 'avatar-shop') {
-                const ownedAvatars = userData?.ownedAvatars || ['default'];
-                const activeAvatar = userData?.activeAvatar || 'default';
-
-                return (
-                    <div className="min-h-[100dvh] bg-pink-50 p-4 md:p-8 font-nunito flex flex-col items-center overflow-y-auto">
-                        <FullscreenButton />
-                        <div className="w-full max-w-lg md:max-w-4xl lg:max-w-5xl mt-8 mb-12">
-                            <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 mb-8 bg-white p-4 md:p-6 rounded-[2rem] shadow-sm text-center md:text-left">
-                                <button onClick={() => setView('menu')} className="p-3 md:p-4 bg-gray-100 rounded-full shadow-sm text-gray-600 hover:bg-gray-200"><ArrowLeft size={24}/></button>
-                                <div>
-                                    <h2 className="text-3xl md:text-4xl font-black text-pink-600">Toko Avatar Lucu</h2>
-                                    <p className="font-bold text-pink-400 mt-1">Beli avatar untuk dipajang di Leaderboard!</p>
+                if (view === 'menu') {
+                    const rank = RANKS.slice().reverse().find(r => (userData?.points || 0) >= r.min) || RANKS[0];
+                    return (
+                        <div className="min-h-[100dvh] bg-gray-50 p-4 md:p-8 font-nunito flex flex-col items-center overflow-y-auto">
+                            <FullscreenButton />
+                            <div className="w-full max-w-lg md:max-w-4xl lg:max-w-6xl space-y-6 my-auto py-8">
+                                <div className="flex justify-end w-full">
+                                    <button onClick={handleLogout} className="flex items-center gap-2 bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl font-black text-sm md:text-base transition-all shadow-sm">
+                                        <LogOut size={20} /> Ganti Pemain
+                                    </button>
                                 </div>
-                                <div className="md:ml-auto bg-amber-100 text-amber-700 px-4 py-2 rounded-xl font-black md:text-xl w-full md:w-auto mt-4 md:mt-0 text-center">
-                                    {userData?.points?.toLocaleString() || 0} Poin
-                                </div>
-                            </div>
 
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                                {AVATARS.map(avatar => {
-                                    const isOwned = ownedAvatars.includes(avatar.id);
-                                    const isActive = activeAvatar === avatar.id;
-                                    
-                                    return (
-                                        <div key={avatar.id} className={`bg-white rounded-[2rem] p-4 border-4 flex flex-col items-center text-center transition-all ${isActive ? 'border-pink-500 shadow-lg scale-105' : 'border-gray-100 hover:border-pink-300'}`}>
-                                            <div className="text-6xl md:text-7xl lg:text-8xl mb-4 bg-gray-50 w-full rounded-2xl py-4">{avatar.icon}</div>
-                                            <h3 className="font-black text-gray-800 text-lg md:text-xl mb-1">{avatar.name}</h3>
-                                            
-                                            <div className="mt-auto w-full pt-4">
-                                                {isActive ? (
-                                                    <button className="w-full bg-pink-100 text-pink-600 font-black py-3 rounded-xl cursor-default text-sm md:text-base">DIPAKAI</button>
-                                                ) : isOwned ? (
-                                                    <button onClick={() => equipAvatar(avatar.id)} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-black py-3 rounded-xl shadow-[0_4px_0_rgb(29,78,216)] active:translate-y-1 active:shadow-none transition-all text-sm md:text-base">PAKAI</button>
-                                                ) : (
-                                                    <button onClick={() => buyAvatar(avatar)} className={`w-full font-black py-3 rounded-xl transition-all shadow-[0_4px_0_rgba(0,0,0,0.2)] active:translate-y-1 active:shadow-none flex items-center justify-center gap-2 text-sm md:text-base ${(userData?.points || 0) >= avatar.price ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
-                                                        <Lock size={16}/> {avatar.price.toLocaleString()} Poin
-                                                    </button>
-                                                )}
+                                <div className="bg-white rounded-[2rem] p-6 md:p-8 lg:p-10 shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-48 h-48 bg-orange-100 rounded-bl-full -z-10 opacity-50"></div>
+                                    <div className="text-5xl md:text-6xl lg:text-7xl bg-gray-100 w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 flex items-center justify-center rounded-[2rem] shadow-inner border-4 border-gray-200 shrink-0">
+                                        {getActiveAvatarIcon()}
+                                    </div>
+                                    <div className="text-center md:text-left flex-1">
+                                        <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-800 mb-2">{userData?.name}</h2>
+                                        <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4 text-sm md:text-base font-bold text-gray-500 justify-center md:justify-start">
+                                            <span className="flex items-center gap-1"><School size={16}/> {userData?.school}</span>
+                                            <span className="hidden md:inline">•</span>
+                                            <span className="flex items-center gap-1"><MapPin size={16}/> {userData?.province}</span>
+                                        </div>
+                                        <div className={`mt-4 inline-flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 rounded-xl ${rank.bg} ${rank.color} font-black text-sm md:text-base lg:text-lg uppercase tracking-wide`}>
+                                            <Trophy size={20} /> {rank.title}
+                                        </div>
+                                    </div>
+                                    <div className="text-center md:text-right bg-orange-50 p-4 md:p-6 rounded-2xl border-2 border-orange-100 min-w-[200px]">
+                                        <p className="text-sm md:text-base font-bold text-orange-400 uppercase tracking-widest mb-1">Total Poin</p>
+                                        <p className="text-4xl md:text-5xl lg:text-6xl font-black text-orange-500">{userData?.points?.toLocaleString() || 0}</p>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 lg:gap-8">
+                                    <button onClick={() => setView('map')} className="col-span-2 bg-gradient-to-br from-emerald-500 to-green-600 p-6 md:p-8 lg:p-10 rounded-[2rem] text-white shadow-[0_8px_0_rgb(21,128,61)] active:shadow-[0_0px_0_rgb(21,128,61)] active:translate-y-2 transition-all flex flex-col items-center md:items-start text-left relative overflow-hidden group">
+                                        <div className="absolute -right-10 -bottom-10 opacity-20 group-hover:scale-110 transition-transform"><MapIcon size={150}/></div>
+                                        <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 rounded-2xl flex items-center justify-center mb-4 md:mb-6 backdrop-blur-sm"><Play fill="currentColor" size={32} /></div>
+                                        <h3 className="text-3xl md:text-4xl font-black mb-1">Petualangan</h3>
+                                        <p className="font-bold text-green-100 text-sm md:text-base">Jelajahi Peta Nusantara!</p>
+                                    </button>
+
+                                    <button onClick={() => setView('multiplayer-setup')} className="col-span-2 bg-gradient-to-br from-blue-500 to-blue-700 p-6 md:p-8 lg:p-10 rounded-[2rem] text-white shadow-[0_8px_0_rgb(29,78,216)] active:shadow-[0_0px_0_rgb(29,78,216)] active:translate-y-2 transition-all flex flex-col items-center md:items-start text-left relative overflow-hidden group">
+                                        <div className="absolute -right-10 -bottom-10 opacity-20 group-hover:scale-110 transition-transform"><Swords size={150}/></div>
+                                        <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 rounded-2xl flex items-center justify-center mb-4 md:mb-6 backdrop-blur-sm"><Users fill="currentColor" size={32} /></div>
+                                        <h3 className="text-3xl md:text-4xl font-black mb-1">Mode Duel</h3>
+                                        <p className="font-bold text-blue-100 text-sm md:text-base">Tantang Temanmu (1 vs 1)</p>
+                                    </button>
+
+                                    <button onClick={() => setView('avatar-shop')} className="col-span-1 md:col-span-2 bg-white border-4 border-pink-200 p-4 md:p-6 rounded-[2rem] text-pink-600 shadow-[0_6px_0_rgb(24bc,191,214)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-4 hover:border-pink-400">
+                                        <div className="text-3xl md:text-4xl">🦊</div>
+                                        <div className="text-left">
+                                            <h3 className="text-xl md:text-2xl font-black">Toko Avatar</h3>
+                                            <p className="text-xs md:text-sm font-bold text-pink-400">Beli profil lucu</p>
+                                        </div>
+                                    </button>
+
+                                    <button onClick={() => setView('quests')} className="col-span-1 md:col-span-2 bg-white border-4 border-teal-200 p-4 md:p-6 rounded-[2rem] text-teal-600 shadow-[0_6px_0_rgb(153,246,228)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-4 hover:border-teal-400 relative">
+                                        {userData?.quests?.some(q => q.progress >= q.target && !q.claimed) && <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full border-2 border-white animate-bounce"></div>}
+                                        <div className="text-3xl md:text-4xl">📜</div>
+                                        <div className="text-left">
+                                            <h3 className="text-xl md:text-2xl font-black">Misi Harian</h3>
+                                            <p className="text-xs md:text-sm font-bold text-teal-400">Klaim hadiah harian</p>
+                                        </div>
+                                    </button>
+
+                                    <button onClick={() => setView('leaderboard')} className="col-span-2 md:col-span-4 bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 p-6 md:p-8 rounded-[2rem] text-white shadow-[0_8px_0_rgb(180,83,9)] active:shadow-[0_0px_0_rgb(180,83,9)] active:translate-y-2 transition-all flex items-center justify-between relative overflow-hidden group">
+                                        <div className="absolute right-10 top-1/2 -translate-y-1/2 opacity-30 group-hover:scale-125 transition-transform"><CantingEmas size={120} /></div>
+                                        <div className="text-left relative z-10 flex items-center gap-6">
+                                            <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm"><Medal fill="currentColor" size={36} /></div>
+                                            <div>
+                                                <h3 className="text-3xl md:text-4xl font-black mb-1 drop-shadow-md">Pembatik Terbaik</h3>
+                                                <p className="font-bold text-amber-100 text-base md:text-lg">Lihat Papan Peringkat Nasional</p>
                                             </div>
                                         </div>
-                                    );
-                                })}
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                );
-            }
+                    );
+                }
 
-            if (view === 'quests') {
-                const quests = userData?.quests || QUEST_TEMPLATES.map(q => ({ ...q, progress: 0, claimed: false }));
-                const streak = userData?.loginStreak || 1;
+                if (view === 'avatar-shop') {
+                    const ownedAvatars = userData?.ownedAvatars || ['default'];
+                    const activeAvatar = userData?.activeAvatar || 'default';
 
-                return (
-                    <div className="min-h-[100dvh] bg-teal-50 p-4 md:p-8 font-nunito flex flex-col items-center overflow-y-auto">
-                        <FullscreenButton />
-                        <div className="w-full max-w-lg md:max-w-2xl lg:max-w-4xl mt-8 mb-12">
-                            <div className="flex items-center gap-4 md:gap-6 mb-8 bg-white p-4 md:p-6 rounded-[2rem] shadow-sm">
-                                <button onClick={() => setView('menu')} className="p-3 md:p-4 bg-gray-100 rounded-full shadow-sm text-gray-600 hover:bg-gray-200"><ArrowLeft size={24}/></button>
-                                <div>
-                                    <h2 className="text-3xl md:text-4xl font-black text-teal-700">Misi Harian</h2>
-                                    <p className="font-bold text-teal-500 mt-1">Selesaikan misi untuk poin ekstra!</p>
+                    return (
+                        <div className="min-h-[100dvh] bg-pink-50 p-4 md:p-8 font-nunito flex flex-col items-center overflow-y-auto">
+                            <FullscreenButton />
+                            <div className="w-full max-w-lg md:max-w-4xl lg:max-w-5xl my-auto py-8">
+                                <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 mb-8 bg-white p-4 md:p-6 rounded-[2rem] shadow-sm text-center md:text-left">
+                                    <button onClick={() => setView('menu')} className="p-3 md:p-4 bg-gray-100 rounded-full shadow-sm text-gray-600 hover:bg-gray-200"><ArrowLeft size={24}/></button>
+                                    <div>
+                                        <h2 className="text-3xl md:text-4xl font-black text-pink-600">Toko Avatar Lucu</h2>
+                                        <p className="font-bold text-pink-400 mt-1">Beli avatar untuk dipajang di Leaderboard!</p>
+                                    </div>
+                                    <div className="md:ml-auto bg-amber-100 text-amber-700 px-4 py-2 rounded-xl font-black md:text-xl w-full md:w-auto mt-4 md:mt-0 text-center">
+                                        {userData?.points?.toLocaleString() || 0} Poin
+                                    </div>
                                 </div>
-                            </div>
 
-                            {/* Streak Banner */}
-                            <div className="bg-gradient-to-r from-orange-400 to-red-500 rounded-[2rem] p-6 text-white mb-8 shadow-lg flex flex-col md:flex-row items-center justify-between text-center md:text-left gap-4">
-                                <div>
-                                    <p className="font-bold text-orange-100 uppercase tracking-widest text-sm mb-1">Login Streak Harian</p>
-                                    <h3 className="text-3xl md:text-4xl font-black flex items-center justify-center md:justify-start gap-2"><Flame className="text-yellow-300" size={36}/> {streak} Hari Berturut-turut!</h3>
-                                </div>
-                                <div className="text-center md:text-right w-full md:w-auto bg-white/20 p-4 rounded-xl">
-                                    <p className="text-sm font-bold text-orange-100">Bonus besok:</p>
-                                    <p className="text-2xl font-black text-yellow-200">+{(streak + 1) * 50} Poin</p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                {quests.map(quest => {
-                                    const isComplete = quest.progress >= quest.target;
-                                    return (
-                                        <div key={quest.id} className={`bg-white rounded-[2rem] p-6 border-4 flex flex-col md:flex-row items-center gap-6 ${isComplete && !quest.claimed ? 'border-teal-400 shadow-lg' : 'border-gray-100'}`}>
-                                            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 ${quest.claimed ? 'bg-gray-100 text-gray-400' : isComplete ? 'bg-teal-100 text-teal-500' : 'bg-orange-100 text-orange-500'}`}>
-                                                {quest.claimed ? <CheckCircle2 size={32}/> : <CalendarCheck size={32}/>}
-                                            </div>
-                                            <div className="flex-1 w-full text-center md:text-left">
-                                                <h3 className={`text-xl font-black mb-2 ${quest.claimed ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{quest.title}</h3>
-                                                <div className="w-full bg-gray-200 rounded-full h-3 mb-1 overflow-hidden">
-                                                    <div className={`h-full transition-all ${isComplete ? 'bg-teal-500' : 'bg-orange-500'}`} style={{ width: `${Math.min(100, (quest.progress/quest.target)*100)}%` }}></div>
-                                                </div>
-                                                <p className="text-sm font-bold text-gray-500">{quest.progress} / {quest.target}</p>
-                                            </div>
-                                            <div className="w-full md:w-auto shrink-0">
-                                                {quest.claimed ? (
-                                                    <button className="w-full md:w-auto px-6 py-3 bg-gray-100 text-gray-400 font-black rounded-xl cursor-not-allowed">DIKLAIM</button>
-                                                ) : isComplete ? (
-                                                    <button onClick={() => claimQuest(quest.id)} className="w-full md:w-auto px-8 py-3 bg-teal-500 hover:bg-teal-600 text-white font-black rounded-xl shadow-[0_4px_0_rgb(13,148,136)] active:translate-y-1 active:shadow-none transition-all">KLAIM +{quest.reward}</button>
-                                                ) : (
-                                                    <div className="px-6 py-3 bg-orange-50 text-orange-600 font-black rounded-xl border-2 border-orange-200 text-center">+{quest.reward} Poin</div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-                );
-            }
-
-            if (view === 'map') {
-                const unlockedLvl = userData?.unlockedLevel || 1;
-                return (
-                    <div className="min-h-[100dvh] bg-blue-50 p-4 md:p-8 font-nunito flex flex-col items-center overflow-y-auto">
-                        <FullscreenButton />
-                        <div className="w-full max-w-lg md:max-w-3xl lg:max-w-5xl mt-8 mb-12">
-                            <div className="flex items-center gap-4 md:gap-6 mb-8 md:mb-12 bg-white p-4 md:p-6 rounded-[2rem] shadow-sm">
-                                <button onClick={() => setView('menu')} className="p-3 md:p-4 bg-gray-100 rounded-full shadow-sm text-gray-600 hover:bg-gray-200"><ArrowLeft size={24}/></button>
-                                <div>
-                                    <h2 className="text-3xl md:text-4xl font-black text-blue-900">Peta Nusantara</h2>
-                                    <p className="text-blue-600 font-bold text-sm md:text-base">Taklukkan pulau untuk membuka area baru!</p>
-                                </div>
-                            </div>
-
-                            <div className="relative py-10 px-4 md:px-10">
-                                <div className="absolute left-[50%] top-0 bottom-0 w-2 md:w-4 bg-blue-200 rounded-full -translate-x-1/2 z-0"></div>
-
-                                <div className="space-y-8 md:space-y-12 relative z-10">
-                                    {ISLANDS.map((island, index) => {
-                                        const isUnlocked = island.id <= unlockedLvl;
-                                        const isCurrent = island.id === unlockedLvl;
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                                    {AVATARS.map(avatar => {
+                                        const isOwned = ownedAvatars.includes(avatar.id);
+                                        const isActive = activeAvatar === avatar.id;
                                         
                                         return (
-                                            <div key={island.id} className={`flex w-full ${island.align}`}>
-                                                <button 
-                                                    onClick={() => { if(isUnlocked) { setLevel(island.id); setView('skin-select'); } }}
-                                                    disabled={!isUnlocked}
-                                                    className={`relative w-[85%] md:w-[60%] lg:w-[45%] p-4 md:p-6 rounded-[2rem] border-4 text-left transition-all group
-                                                        ${isUnlocked 
-                                                            ? `bg-gradient-to-r ${island.color} border-white shadow-xl hover:-translate-y-2 hover:scale-105` 
-                                                            : 'bg-gray-200 border-gray-300 opacity-60 grayscale'}
-                                                        ${isCurrent ? 'ring-8 ring-yellow-400 ring-opacity-50 animate-pulse-slow' : ''}
-                                                    `}
-                                                >
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="text-4xl md:text-5xl lg:text-6xl bg-white/20 w-16 h-16 md:w-20 md:h-20 flex items-center justify-center rounded-2xl shadow-inner shrink-0">
-                                                            {isUnlocked ? island.icon : <Lock className="text-gray-500" size={32}/>}
-                                                        </div>
-                                                        <div className="flex-1 text-white">
-                                                            <div className="text-xs md:text-sm font-bold opacity-80 uppercase tracking-widest mb-1">Pulau {island.id}</div>
-                                                            <h3 className="text-2xl md:text-3xl font-black mb-1 drop-shadow-md">{island.name}</h3>
-                                                            {isUnlocked && <p className="text-sm md:text-base font-bold bg-black/20 inline-block px-3 py-1 rounded-lg">{island.desc}</p>}
-                                                        </div>
-                                                        {isUnlocked && <ChevronRight className="text-white/50 group-hover:text-white transition-colors" size={32}/>}
-                                                    </div>
-                                                </button>
+                                            <div key={avatar.id} className={`bg-white rounded-[2rem] p-4 border-4 flex flex-col items-center text-center transition-all ${isActive ? 'border-pink-500 shadow-lg scale-105' : 'border-gray-100 hover:border-pink-300'}`}>
+                                                <div className="text-6xl md:text-7xl lg:text-8xl mb-4 bg-gray-50 w-full rounded-2xl py-4">{avatar.icon}</div>
+                                                <h3 className="font-black text-gray-800 text-lg md:text-xl mb-1">{avatar.name}</h3>
+                                                
+                                                <div className="mt-auto w-full pt-4">
+                                                    {isActive ? (
+                                                        <button className="w-full bg-pink-100 text-pink-600 font-black py-3 rounded-xl cursor-default text-sm md:text-base">DIPAKAI</button>
+                                                    ) : isOwned ? (
+                                                        <button onClick={() => equipAvatar(avatar.id)} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-black py-3 rounded-xl shadow-[0_4px_0_rgb(29,78,216)] active:translate-y-1 active:shadow-none transition-all text-sm md:text-base">PAKAI</button>
+                                                    ) : (
+                                                        <button onClick={() => buyAvatar(avatar)} className={`w-full font-black py-3 rounded-xl transition-all shadow-[0_4px_0_rgba(0,0,0,0.2)] active:translate-y-1 active:shadow-none flex items-center justify-center gap-2 text-sm md:text-base ${(userData?.points || 0) >= avatar.price ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                                                            <Lock size={16}/> {avatar.price.toLocaleString()} Poin
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                         );
                                     })}
                                 </div>
                             </div>
                         </div>
-                    </div>
-                );
-            }
+                    );
+                }
 
-            if (view === 'leaderboard') {
-                return (
-                    <div className="min-h-[100dvh] bg-amber-50 p-4 md:p-8 font-nunito flex flex-col items-center overflow-y-auto">
-                        <FullscreenButton />
-                        <div className="w-full max-w-lg md:max-w-4xl lg:max-w-5xl bg-white rounded-[2rem] shadow-xl overflow-hidden border-4 border-amber-200 flex flex-col mt-8 mb-12 max-h-none md:max-h-[90dvh]">
-                            <div className="bg-gradient-to-r from-amber-500 to-amber-600 p-6 md:p-8 flex items-center gap-4 text-white relative">
-                                <button onClick={() => setView('menu')} className="p-3 bg-white/20 hover:bg-white/30 rounded-full backdrop-blur transition-colors"><ArrowLeft size={24}/></button>
-                                <div className="flex-1">
-                                    <h2 className="text-3xl md:text-4xl font-black flex items-center gap-3">
-                                        <Medal fill="currentColor" /> Papan Peringkat Nasional
-                                    </h2>
-                                    <p className="font-bold text-amber-100 mt-1">Pembatik Terbaik dengan Poin Tertinggi</p>
+                if (view === 'quests') {
+                    const quests = userData?.quests || QUEST_TEMPLATES.map(q => ({ ...q, progress: 0, claimed: false }));
+                    const streak = userData?.loginStreak || 1;
+
+                    return (
+                        <div className="min-h-[100dvh] bg-teal-50 p-4 md:p-8 font-nunito flex flex-col items-center overflow-y-auto">
+                            <FullscreenButton />
+                            <div className="w-full max-w-lg md:max-w-2xl lg:max-w-4xl my-auto py-8">
+                                <div className="flex items-center gap-4 md:gap-6 mb-8 bg-white p-4 md:p-6 rounded-[2rem] shadow-sm">
+                                    <button onClick={() => setView('menu')} className="p-3 md:p-4 bg-gray-100 rounded-full shadow-sm text-gray-600 hover:bg-gray-200"><ArrowLeft size={24}/></button>
+                                    <div>
+                                        <h2 className="text-3xl md:text-4xl font-black text-teal-700">Misi Harian</h2>
+                                        <p className="font-bold text-teal-500 mt-1">Selesaikan misi untuk poin ekstra!</p>
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-slate-50 min-h-[50vh]">
-                                {leaderboardData.length === 0 ? (
-                                    <div className="text-center text-gray-500 font-bold py-10">Belum ada data pemain. Jadilah yang pertama!</div>
-                                ) : (
-                                    leaderboardData.map((player, index) => {
-                                        const isTop1 = index === 0;
-                                        const isTop3 = index < 3;
-                                        
-                                        // Cari icon avatar
-                                        const pAvatarIcon = AVATARS.find(a => a.id === player.avatar)?.icon || '👤';
 
+                                {/* Streak Banner */}
+                                <div className="bg-gradient-to-r from-orange-400 to-red-500 rounded-[2rem] p-6 text-white mb-8 shadow-lg flex flex-col md:flex-row items-center justify-between text-center md:text-left gap-4">
+                                    <div>
+                                        <p className="font-bold text-orange-100 uppercase tracking-widest text-sm mb-1">Login Streak Harian</p>
+                                        <h3 className="text-3xl md:text-4xl font-black flex items-center justify-center md:justify-start gap-2"><Flame className="text-yellow-300" size={36}/> {streak} Hari Berturut-turut!</h3>
+                                    </div>
+                                    <div className="text-center md:text-right w-full md:w-auto bg-white/20 p-4 rounded-xl">
+                                        <p className="text-sm font-bold text-orange-100">Bonus besok:</p>
+                                        <p className="text-2xl font-black text-yellow-200">+{(streak + 1) * 50} Poin</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    {quests.map(quest => {
+                                        const isComplete = quest.progress >= quest.target;
                                         return (
-                                            <div key={player.id} className={`flex items-center gap-4 p-4 md:p-6 rounded-2xl border-2 transition-all hover:scale-[1.01] ${isTop1 ? 'bg-amber-100 border-amber-400 shadow-lg' : isTop3 ? 'bg-white border-amber-200 shadow-md' : 'bg-white border-gray-200'}`}>
-                                                <div className={`w-12 h-12 md:w-16 md:h-16 shrink-0 flex items-center justify-center rounded-2xl font-black text-2xl md:text-3xl ${isTop1 ? 'bg-amber-500 text-white shadow-inner' : isTop3 ? 'bg-amber-200 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
-                                                    {index + 1}
+                                            <div key={quest.id} className={`bg-white rounded-[2rem] p-6 border-4 flex flex-col md:flex-row items-center gap-6 ${isComplete && !quest.claimed ? 'border-teal-400 shadow-lg' : 'border-gray-100'}`}>
+                                                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 ${quest.claimed ? 'bg-gray-100 text-gray-400' : isComplete ? 'bg-teal-100 text-teal-500' : 'bg-orange-100 text-orange-500'}`}>
+                                                    {quest.claimed ? <CheckCircle2 size={32}/> : <CalendarCheck size={32}/>}
                                                 </div>
-                                                
-                                                {/* Profil Pemain (Ditambahkan Avatar) */}
-                                                <div className="text-4xl md:text-5xl shrink-0">{pAvatarIcon}</div>
-
-                                                <div className="flex-1 min-w-0">
-                                                    <h3 className={`text-xl md:text-2xl font-black truncate flex items-center gap-2 ${isTop1 ? 'text-amber-800' : 'text-gray-800'}`}>
-                                                        {player.name}
-                                                        {isTop1 && <CantingEmas size={28} className="drop-shadow-md animate-pulse" title="Pembatik Utama (Canting Emas)" />}
-                                                    </h3>
-                                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs md:text-sm font-bold text-gray-500 mt-1">
-                                                        <span className="flex items-center gap-1 truncate"><School size={14}/> {player.school}</span>
-                                                        <span className="flex items-center gap-1 truncate"><MapPin size={14}/> {player.province}</span>
+                                                <div className="flex-1 w-full text-center md:text-left">
+                                                    <h3 className={`text-xl font-black mb-2 ${quest.claimed ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{quest.title}</h3>
+                                                    <div className="w-full bg-gray-200 rounded-full h-3 mb-1 overflow-hidden">
+                                                        <div className={`h-full transition-all ${isComplete ? 'bg-teal-500' : 'bg-orange-500'}`} style={{ width: `${Math.min(100, (quest.progress/quest.target)*100)}%` }}></div>
                                                     </div>
+                                                    <p className="text-sm font-bold text-gray-500">{quest.progress} / {quest.target}</p>
                                                 </div>
-                                                <div className="text-right">
-                                                    <p className="text-xs md:text-sm font-black text-gray-400 uppercase tracking-widest">Poin</p>
-                                                    <p className={`text-2xl md:text-3xl lg:text-4xl font-black ${isTop1 ? 'text-amber-600' : 'text-orange-500'}`}>
-                                                        {player.points?.toLocaleString() || 0}
-                                                    </p>
+                                                <div className="w-full md:w-auto shrink-0">
+                                                    {quest.claimed ? (
+                                                        <button className="w-full md:w-auto px-6 py-3 bg-gray-100 text-gray-400 font-black rounded-xl cursor-not-allowed">DIKLAIM</button>
+                                                    ) : isComplete ? (
+                                                        <button onClick={() => claimQuest(quest.id)} className="w-full md:w-auto px-8 py-3 bg-teal-500 hover:bg-teal-600 text-white font-black rounded-xl shadow-[0_4px_0_rgb(13,148,136)] active:translate-y-1 active:shadow-none transition-all">KLAIM +{quest.reward}</button>
+                                                    ) : (
+                                                        <div className="px-6 py-3 bg-orange-50 text-orange-600 font-black rounded-xl border-2 border-orange-200 text-center">+{quest.reward} Poin</div>
+                                                    )}
                                                 </div>
                                             </div>
                                         );
-                                    })
-                                )}
+                                    })}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                );
-            }
+                    );
+                }
 
-            if (view === 'multiplayer-setup') {
-                return (
-                    <div className="min-h-[100dvh] bg-blue-50 p-4 md:p-8 font-nunito flex flex-col items-center overflow-y-auto">
-                        <FullscreenButton />
-                        <div className="bg-white p-6 md:p-10 rounded-[2rem] shadow-xl w-full max-w-lg md:max-w-3xl mt-8 mb-12">
-                            <div className="flex items-center gap-4 mb-8 border-b-2 border-gray-100 pb-6">
-                                <button onClick={() => setView('menu')} className="p-3 md:p-4 bg-gray-100 rounded-full shadow-sm text-gray-600 hover:bg-gray-200"><ArrowLeft size={24}/></button>
-                                <div>
-                                    <h2 className="text-3xl md:text-4xl font-black text-blue-900">Persiapan Duel</h2>
-                                    <p className="text-blue-600 font-bold text-sm md:text-base">Layar akan terbagi menjadi dua bagian.</p>
-                                </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-8">
-                                <div className="bg-orange-50 p-6 rounded-2xl border-2 border-orange-200">
-                                    <label className="block text-sm md:text-base font-black text-orange-800 uppercase tracking-widest mb-2">Pemain Kiri</label>
-                                    <input type="text" className="w-full px-4 py-3 text-lg md:text-xl font-bold bg-white border-2 border-orange-300 rounded-xl outline-none focus:border-orange-500" value={mpSetup.p1Name} onChange={e => setMpSetup({...mpSetup, p1Name: e.target.value})} />
-                                </div>
-                                <div className="bg-blue-50 p-6 rounded-2xl border-2 border-blue-200">
-                                    <label className="block text-sm md:text-base font-black text-blue-800 uppercase tracking-widest mb-2">Pemain Kanan</label>
-                                    <input type="text" className="w-full px-4 py-3 text-lg md:text-xl font-bold bg-white border-2 border-blue-300 rounded-xl outline-none focus:border-blue-500" value={mpSetup.p2Name} onChange={e => setMpSetup({...mpSetup, p2Name: e.target.value})} />
-                                </div>
-                            </div>
-
-                            <div className="mb-8">
-                                <label className="block text-base md:text-lg font-black text-gray-700 mb-3">Tingkat Kesulitan Soal</label>
-                                <div className="flex gap-4">
-                                    {[1, 2, 3].map(l => (
-                                        <button key={l} onClick={() => setMpSetup({...mpSetup, level: l})} className={`flex-1 py-4 md:py-6 rounded-2xl font-black text-xl md:text-2xl transition-all border-4 ${mpSetup.level === l ? 'bg-blue-100 border-blue-500 text-blue-700 scale-105 shadow-md' : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100'}`}>Level {l}</button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <button onClick={startMultiplayer} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 md:py-6 rounded-2xl font-black text-2xl md:text-3xl shadow-[0_6px_0_rgb(30,58,138)] active:shadow-[0_0px_0_rgb(30,58,138)] active:translate-y-1 transition-all uppercase tracking-widest flex items-center justify-center gap-4">
-                                <Swords size={36} /> MULAI DUEL!
-                            </button>
-                        </div>
-                    </div>
-                );
-            }
-
-            if (view === 'multiplayer-game') {
-                const formatTime = (s) => `${Math.floor(s/60)}:${(s%60).toString().padStart(2, '0')}`;
-                
-                const renderPlayerBoard = (pKey, pName, colorTheme) => {
-                    const player = mpState[pKey];
-                    const isWinner = mpState.winner === pKey;
-                    const isLoser = mpState.winner && mpState.winner !== pKey && mpState.winner !== 'draw';
-                    
-                    const bgClass = colorTheme === 'orange' ? 'bg-orange-950/40' : 'bg-blue-950/40';
-                    const borderClass = colorTheme === 'orange' ? 'border-orange-500' : 'border-blue-500';
-                    const textClass = colorTheme === 'orange' ? 'text-orange-400' : 'text-blue-400';
-                    
+                if (view === 'map') {
+                    const unlockedLvl = userData?.unlockedLevel || 1;
                     return (
-                        <div className={`flex-1 flex flex-col p-2 md:p-4 lg:p-6 min-h-[500px] md:min-h-0 ${bgClass} relative overflow-hidden transition-all duration-500 ${isWinner ? 'scale-105 z-20 shadow-2xl bg-green-900/80' : ''} ${isLoser ? 'opacity-50 grayscale' : ''}`}>
-                            <div className={`bg-gray-900/80 backdrop-blur border-b-4 ${borderClass} p-3 md:p-4 rounded-2xl flex justify-between items-center mb-2 md:mb-4 shadow-md shrink-0`}>
-                                <div>
-                                    <h3 className={`text-lg md:text-xl lg:text-2xl font-black ${textClass}`}>{pName}</h3>
-                                    <div className="flex gap-1 mt-1 text-red-500">
-                                        {[...Array(3)].map((_, i) => <Heart key={i} size={16} className="md:w-5 md:h-5 lg:w-6 lg:h-6" fill={i < player.lives ? "currentColor" : "none"} />)}
+                        <div className="min-h-[100dvh] bg-blue-50 p-4 md:p-8 font-nunito flex flex-col items-center overflow-y-auto">
+                            <FullscreenButton />
+                            <div className="w-full max-w-lg md:max-w-3xl lg:max-w-5xl my-auto py-8">
+                                <div className="flex items-center gap-4 md:gap-6 mb-8 md:mb-12 bg-white p-4 md:p-6 rounded-[2rem] shadow-sm">
+                                    <button onClick={() => setView('menu')} className="p-3 md:p-4 bg-gray-100 rounded-full shadow-sm text-gray-600 hover:bg-gray-200"><ArrowLeft size={24}/></button>
+                                    <div>
+                                        <h2 className="text-3xl md:text-4xl font-black text-blue-900">Peta Nusantara</h2>
+                                        <p className="text-blue-600 font-bold text-sm md:text-base">Taklukkan pulau untuk membuka area baru!</p>
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <span className="text-[10px] md:text-xs lg:text-sm font-bold text-gray-400 uppercase">Skor</span>
-                                    <p className="text-2xl md:text-3xl lg:text-4xl font-black text-white">{player.score}</p>
+
+                                <div className="relative py-10 px-4 md:px-10">
+                                    <div className="absolute left-[50%] top-0 bottom-0 w-2 md:w-4 bg-blue-200 rounded-full -translate-x-1/2 z-0"></div>
+
+                                    <div className="space-y-8 md:space-y-12 relative z-10">
+                                        {ISLANDS.map((island, index) => {
+                                            const isUnlocked = island.id <= unlockedLvl;
+                                            const isCurrent = island.id === unlockedLvl;
+                                            
+                                            return (
+                                                <div key={island.id} className={`flex w-full ${island.align}`}>
+                                                    <button 
+                                                        onClick={() => { if(isUnlocked) { setLevel(island.id); setView('skin-select'); } }}
+                                                        disabled={!isUnlocked}
+                                                        className={`relative w-[85%] md:w-[60%] lg:w-[45%] p-4 md:p-6 rounded-[2rem] border-4 text-left transition-all group
+                                                            ${isUnlocked 
+                                                                ? `bg-gradient-to-r ${island.color} border-white shadow-xl hover:-translate-y-2 hover:scale-105` 
+                                                                : 'bg-gray-200 border-gray-300 opacity-60 grayscale'}
+                                                            ${isCurrent ? 'ring-8 ring-yellow-400 ring-opacity-50 animate-pulse-slow' : ''}
+                                                        `}
+                                                    >
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="text-4xl md:text-5xl lg:text-6xl bg-white/20 w-16 h-16 md:w-20 md:h-20 flex items-center justify-center rounded-2xl shadow-inner shrink-0">
+                                                                {isUnlocked ? island.icon : <Lock className="text-gray-500" size={32}/>}
+                                                            </div>
+                                                            <div className="flex-1 text-white">
+                                                                <div className="text-xs md:text-sm font-bold opacity-80 uppercase tracking-widest mb-1">Pulau {island.id}</div>
+                                                                <h3 className="text-2xl md:text-3xl font-black mb-1 drop-shadow-md">{island.name}</h3>
+                                                                {isUnlocked && <p className="text-sm md:text-base font-bold bg-black/20 inline-block px-3 py-1 rounded-lg">{island.desc}</p>}
+                                                            </div>
+                                                            {isUnlocked && <ChevronRight className="text-white/50 group-hover:text-white transition-colors" size={32}/>}
+                                                        </div>
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
+                        </div>
+                    );
+                }
 
-                            <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full">
-                                {!player.activeBlock ? (
-                                    <div className="w-full max-w-[220px] md:max-w-[350px] aspect-square bg-gray-800/80 p-2 md:p-4 rounded-[2rem] shadow-xl border-4 border-gray-700 backdrop-blur relative">
-                                        <div className="absolute inset-4 rounded-2xl bg-cover bg-center opacity-40" style={{ backgroundImage: `url(${BATIKS[0].bgImage})`}}></div>
-                                        <div className="grid grid-cols-4 grid-rows-4 gap-1 md:gap-2 w-full h-full relative z-10">
-                                            {player.grid.map(b => (
-                                                <button key={b.id} onPointerDown={(e) => { e.preventDefault(); if(b.active && !mpState.winner) setMpState(prev => ({...prev, [pKey]: {...prev[pKey], activeBlock: b, input: '', feedback: null}})) }}
-                                                    className={`rounded-xl transition-all transform font-bold text-lg md:text-xl select-none
-                                                        ${!b.active ? 'opacity-0 scale-50' : 'opacity-100 scale-100 shadow-[0_4px_0_rgba(0,0,0,0.3)] active:translate-y-1 active:shadow-none'}
-                                                        ${b.isSpecial ? 'bg-gradient-to-br from-yellow-400 to-orange-500' : 'bg-gradient-to-br from-slate-600 to-slate-800'}
-                                                    `}>
-                                                    {b.active && <span className="text-white drop-shadow-md">{b.isSpecial ? '★' : '?'}</span>}
-                                                </button>
-                                            ))}
+                if (view === 'leaderboard') {
+                    return (
+                        <div className="min-h-[100dvh] bg-amber-50 p-4 md:p-8 font-nunito flex flex-col items-center overflow-y-auto">
+                            <FullscreenButton />
+                            <div className="w-full max-w-lg md:max-w-4xl lg:max-w-5xl bg-white rounded-[2rem] shadow-xl overflow-hidden border-4 border-amber-200 flex flex-col my-auto max-h-none md:max-h-[90dvh]">
+                                <div className="bg-gradient-to-r from-amber-500 to-amber-600 p-6 md:p-8 flex items-center gap-4 text-white relative">
+                                    <button onClick={() => setView('menu')} className="p-3 bg-white/20 hover:bg-white/30 rounded-full backdrop-blur transition-colors"><ArrowLeft size={24}/></button>
+                                    <div className="flex-1">
+                                        <h2 className="text-3xl md:text-4xl font-black flex items-center gap-3">
+                                            <Medal fill="currentColor" /> Papan Peringkat Nasional
+                                        </h2>
+                                        <p className="font-bold text-amber-100 mt-1">Pembatik Terbaik dengan Poin Tertinggi</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-slate-50 min-h-[50vh]">
+                                    {leaderboardData.length === 0 ? (
+                                        <div className="text-center text-gray-500 font-bold py-10">Belum ada data pemain. Jadilah yang pertama!</div>
+                                    ) : (
+                                        leaderboardData.map((player, index) => {
+                                            const isTop1 = index === 0;
+                                            const isTop3 = index < 3;
+                                            
+                                            // Cari icon avatar
+                                            const pAvatarIcon = AVATARS.find(a => a.id === player.avatar)?.icon || '👤';
+
+                                            return (
+                                                <div key={player.id} className={`flex items-center gap-4 p-4 md:p-6 rounded-2xl border-2 transition-all hover:scale-[1.01] ${isTop1 ? 'bg-amber-100 border-amber-400 shadow-lg' : isTop3 ? 'bg-white border-amber-200 shadow-md' : 'bg-white border-gray-200'}`}>
+                                                    <div className={`w-12 h-12 md:w-16 md:h-16 shrink-0 flex items-center justify-center rounded-2xl font-black text-2xl md:text-3xl ${isTop1 ? 'bg-amber-500 text-white shadow-inner' : isTop3 ? 'bg-amber-200 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                        {index + 1}
+                                                    </div>
+                                                    
+                                                    {/* Profil Pemain (Ditambahkan Avatar) */}
+                                                    <div className="text-4xl md:text-5xl shrink-0">{pAvatarIcon}</div>
+
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className={`text-xl md:text-2xl font-black truncate flex items-center gap-2 ${isTop1 ? 'text-amber-800' : 'text-gray-800'}`}>
+                                                            {player.name}
+                                                            {isTop1 && <CantingEmas size={28} className="drop-shadow-md animate-pulse" title="Pembatik Utama (Canting Emas)" />}
+                                                        </h3>
+                                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs md:text-sm font-bold text-gray-500 mt-1">
+                                                            <span className="flex items-center gap-1 truncate"><School size={14}/> {player.school}</span>
+                                                            <span className="flex items-center gap-1 truncate"><MapPin size={14}/> {player.province}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-xs md:text-sm font-black text-gray-400 uppercase tracking-widest">Poin</p>
+                                                        <p className={`text-2xl md:text-3xl lg:text-4xl font-black ${isTop1 ? 'text-amber-600' : 'text-orange-500'}`}>
+                                                            {player.points?.toLocaleString() || 0}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+
+                if (view === 'multiplayer-setup') {
+                    return (
+                        <div className="min-h-[100dvh] bg-blue-50 p-4 md:p-8 font-nunito flex flex-col items-center overflow-y-auto">
+                            <FullscreenButton />
+                            <div className="bg-white p-6 md:p-10 rounded-[2rem] shadow-xl w-full max-w-lg md:max-w-3xl my-auto py-8">
+                                <div className="flex items-center gap-4 mb-8 border-b-2 border-gray-100 pb-6">
+                                    <button onClick={() => setView('menu')} className="p-3 md:p-4 bg-gray-100 rounded-full shadow-sm text-gray-600 hover:bg-gray-200"><ArrowLeft size={24}/></button>
+                                    <div>
+                                        <h2 className="text-3xl md:text-4xl font-black text-blue-900">Persiapan Duel</h2>
+                                        <p className="text-blue-600 font-bold text-sm md:text-base">Layar akan terbagi menjadi dua bagian.</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-8">
+                                    <div className="bg-orange-50 p-6 rounded-2xl border-2 border-orange-200">
+                                        <label className="block text-sm md:text-base font-black text-orange-800 uppercase tracking-widest mb-2">Pemain Kiri</label>
+                                        <input type="text" className="w-full px-4 py-3 text-lg md:text-xl font-bold bg-white border-2 border-orange-300 rounded-xl outline-none focus:border-orange-500" value={mpSetup.p1Name} onChange={e => setMpSetup({...mpSetup, p1Name: e.target.value})} />
+                                    </div>
+                                    <div className="bg-blue-50 p-6 rounded-2xl border-2 border-blue-200">
+                                        <label className="block text-sm md:text-base font-black text-blue-800 uppercase tracking-widest mb-2">Pemain Kanan</label>
+                                        <input type="text" className="w-full px-4 py-3 text-lg md:text-xl font-bold bg-white border-2 border-blue-300 rounded-xl outline-none focus:border-blue-500" value={mpSetup.p2Name} onChange={e => setMpSetup({...mpSetup, p2Name: e.target.value})} />
+                                    </div>
+                                </div>
+
+                                <div className="mb-8">
+                                    <label className="block text-base md:text-lg font-black text-gray-700 mb-3">Tingkat Kesulitan Soal</label>
+                                    <div className="flex gap-4">
+                                        {[1, 2, 3].map(l => (
+                                            <button key={l} onClick={() => setMpSetup({...mpSetup, level: l})} className={`flex-1 py-4 md:py-6 rounded-2xl font-black text-xl md:text-2xl transition-all border-4 ${mpSetup.level === l ? 'bg-blue-100 border-blue-500 text-blue-700 scale-105 shadow-md' : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100'}`}>Level {l}</button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <button onClick={startMultiplayer} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 md:py-6 rounded-2xl font-black text-2xl md:text-3xl shadow-[0_6px_0_rgb(30,58,138)] active:shadow-[0_0px_0_rgb(30,58,138)] active:translate-y-1 transition-all uppercase tracking-widest flex items-center justify-center gap-4">
+                                    <Swords size={36} /> MULAI DUEL!
+                                </button>
+                            </div>
+                        </div>
+                    );
+                }
+
+                if (view === 'multiplayer-game') {
+                    const formatTime = (s) => `${Math.floor(s/60)}:${(s%60).toString().padStart(2, '0')}`;
+                    
+                    const renderPlayerBoard = (pKey, pName, colorTheme) => {
+                        const player = mpState[pKey];
+                        const isWinner = mpState.winner === pKey;
+                        const isLoser = mpState.winner && mpState.winner !== pKey && mpState.winner !== 'draw';
+                        
+                        const bgClass = colorTheme === 'orange' ? 'bg-orange-950/40' : 'bg-blue-950/40';
+                        const borderClass = colorTheme === 'orange' ? 'border-orange-500' : 'border-blue-500';
+                        const textClass = colorTheme === 'orange' ? 'text-orange-400' : 'text-blue-400';
+                        
+                        return (
+                            <div className={`flex-1 flex flex-col p-2 md:p-4 lg:p-6 min-h-[500px] md:min-h-0 ${bgClass} relative overflow-hidden transition-all duration-500 ${isWinner ? 'scale-105 z-20 shadow-2xl bg-green-900/80' : ''} ${isLoser ? 'opacity-50 grayscale' : ''}`}>
+                                <div className={`bg-gray-900/80 backdrop-blur border-b-4 ${borderClass} p-3 md:p-4 rounded-2xl flex justify-between items-center mb-2 md:mb-4 shadow-md shrink-0`}>
+                                    <div>
+                                        <h3 className={`text-lg md:text-xl lg:text-2xl font-black ${textClass}`}>{pName}</h3>
+                                        <div className="flex gap-1 mt-1 text-red-500">
+                                            {[...Array(3)].map((_, i) => <Heart key={i} size={16} className="md:w-5 md:h-5 lg:w-6 lg:h-6" fill={i < player.lives ? "currentColor" : "none"} />)}
                                         </div>
                                     </div>
-                                ) : (
-                                    <div className="w-full h-full flex flex-col justify-center gap-3 md:gap-4 lg:gap-6 max-w-sm mx-auto">
-                                        <div className="text-center shrink-0">
-                                            <p className="text-xs md:text-sm lg:text-base font-bold text-gray-400 mb-1 uppercase tracking-widest">Selesaikan Soal</p>
-                                            <div className="text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-wider drop-shadow-lg">
-                                                {player.activeBlock.q.text} = <span className={`inline-block min-w-[60px] md:min-w-[80px] lg:min-w-[100px] border-b-4 pb-1 ${player.feedback === 'wrong' ? 'border-red-500 text-red-500 animate-pulse' : 'border-blue-500 text-blue-400'}`}>{player.input || '?'}</span>
+                                    <div className="text-right">
+                                        <span className="text-[10px] md:text-xs lg:text-sm font-bold text-gray-400 uppercase">Skor</span>
+                                        <p className="text-2xl md:text-3xl lg:text-4xl font-black text-white">{player.score}</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full">
+                                    {!player.activeBlock ? (
+                                        <div className="w-full max-w-[220px] md:max-w-[350px] aspect-square bg-gray-800/80 p-2 md:p-4 rounded-[2rem] shadow-xl border-4 border-gray-700 backdrop-blur relative">
+                                            <div className="absolute inset-4 rounded-2xl bg-cover bg-center opacity-40" style={{ backgroundImage: `url(${BATIKS[0].bgImage})`}}></div>
+                                            <div className="grid grid-cols-4 grid-rows-4 gap-1 md:gap-2 w-full h-full relative z-10">
+                                                {player.grid.map(b => (
+                                                    <button key={b.id} onPointerDown={(e) => { e.preventDefault(); if(b.active && !mpState.winner) setMpState(prev => ({...prev, [pKey]: {...prev[pKey], activeBlock: b, input: '', feedback: null}})) }}
+                                                        className={`rounded-xl transition-all transform font-bold text-lg md:text-xl select-none
+                                                            ${!b.active ? 'opacity-0 scale-50' : 'opacity-100 scale-100 shadow-[0_4px_0_rgba(0,0,0,0.3)] active:translate-y-1 active:shadow-none'}
+                                                            ${b.isSpecial ? 'bg-gradient-to-br from-yellow-400 to-orange-500' : 'bg-gradient-to-br from-slate-600 to-slate-800'}
+                                                        `}>
+                                                        {b.active && <span className="text-white drop-shadow-md">{b.isSpecial ? '★' : '?'}</span>}
+                                                    </button>
+                                                ))}
                                             </div>
                                         </div>
-                                        <div className="shrink-0 w-full">
-                                            {renderNumpad(player.input, (val) => setMpState(prev => ({...prev, [pKey]: {...prev[pKey], input: val}})), (e) => submitMpAnswer(pKey, e), pKey === 'p2', true)}
+                                    ) : (
+                                        <div className="w-full h-full flex flex-col justify-center gap-3 md:gap-4 lg:gap-6 max-w-sm mx-auto">
+                                            <div className="text-center shrink-0">
+                                                <p className="text-xs md:text-sm lg:text-base font-bold text-gray-400 mb-1 uppercase tracking-widest">Selesaikan Soal</p>
+                                                <div className="text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-wider drop-shadow-lg">
+                                                    {player.activeBlock.q.text} = <span className={`inline-block min-w-[60px] md:min-w-[80px] lg:min-w-[100px] border-b-4 pb-1 ${player.feedback === 'wrong' ? 'border-red-500 text-red-500 animate-pulse' : 'border-blue-500 text-blue-400'}`}>{player.input || '?'}</span>
+                                                </div>
+                                            </div>
+                                            <div className="shrink-0 w-full">
+                                                {renderNumpad(player.input, (val) => setMpState(prev => ({...prev, [pKey]: {...prev[pKey], input: val}})), (e) => submitMpAnswer(pKey, e), pKey === 'p2', true)}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {isWinner && (
+                                    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                                        <div className="text-center animate-bounce">
+                                            <span className="text-7xl md:text-8xl lg:text-9xl">🏆</span>
+                                            <h2 className="text-5xl md:text-6xl lg:text-8xl font-black text-yellow-400 drop-shadow-[0_0_20px_rgba(250,204,21,0.8)] mt-4 uppercase">MENANG!</h2>
                                         </div>
                                     </div>
                                 )}
                             </div>
+                        );
+                    };
 
-                            {isWinner && (
-                                <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                                    <div className="text-center animate-bounce">
-                                        <span className="text-7xl md:text-8xl lg:text-9xl">🏆</span>
-                                        <h2 className="text-5xl md:text-6xl lg:text-8xl font-black text-yellow-400 drop-shadow-[0_0_20px_rgba(250,204,21,0.8)] mt-4 uppercase">MENANG!</h2>
+                    return (
+                        <div className="min-h-[100dvh] bg-gray-900 flex flex-col md:flex-row relative font-nunito overflow-y-auto overflow-x-hidden" style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}>
+                            <FullscreenButton />
+                            
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-gray-800 border-b-4 border-x-4 border-gray-950 px-6 md:px-8 lg:px-12 py-2 md:py-3 lg:py-4 rounded-b-3xl z-50 flex items-center gap-3 md:gap-4 shadow-2xl">
+                                <Clock size={24} className={`md:w-8 md:h-8 lg:w-10 lg:h-10 ${mpState.timer < 60 ? "text-red-500 animate-pulse" : "text-white"}`} />
+                                <span className={`font-black text-2xl md:text-3xl lg:text-5xl tabular-nums tracking-widest ${mpState.timer < 60 ? "text-red-500" : "text-white"}`}>{formatTime(mpState.timer)}</span>
+                            </div>
+
+                            <button onClick={() => setView('menu')} className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 z-50 bg-red-600/80 hover:bg-red-600 backdrop-blur text-white px-6 md:px-8 py-2 md:py-3 rounded-full font-bold text-sm md:text-base lg:text-lg shadow-lg border border-red-400 transition-all">
+                                Akhiri Duel
+                            </button>
+
+                            <div className="flex-1 flex flex-col md:flex-row w-full min-h-max">
+                                {renderPlayerBoard('p1', mpSetup.p1Name, 'orange')}
+                                <div className="h-2 md:h-full w-full md:w-2 bg-gray-950 shadow-[0_0_20px_rgba(0,0,0,1)] z-10 shrink-0"></div>
+                                {renderPlayerBoard('p2', mpSetup.p2Name, 'blue')}
+                            </div>
+
+                            {mpState.winner === 'draw' && (
+                                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
+                                    <div className="text-center text-white">
+                                        <span className="text-7xl md:text-8xl lg:text-9xl">⏳</span>
+                                        <h2 className="text-5xl md:text-7xl lg:text-9xl font-black mt-6 tracking-widest uppercase">WAKTU HABIS</h2>
+                                        <p className="text-2xl md:text-3xl lg:text-4xl text-gray-400 font-bold mt-4">PERTANDINGAN SERI</p>
                                     </div>
                                 </div>
                             )}
                         </div>
                     );
-                };
+                }
 
-                return (
-                    <div className="min-h-[100dvh] bg-gray-900 flex flex-col md:flex-row relative font-nunito overflow-y-auto overflow-x-hidden" style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}>
-                        <FullscreenButton />
-                        
-                        <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-gray-800 border-b-4 border-x-4 border-gray-950 px-6 md:px-8 lg:px-12 py-2 md:py-3 lg:py-4 rounded-b-3xl z-50 flex items-center gap-3 md:gap-4 shadow-2xl">
-                            <Clock size={24} className={`md:w-8 md:h-8 lg:w-10 lg:h-10 ${mpState.timer < 60 ? "text-red-500 animate-pulse" : "text-white"}`} />
-                            <span className={`font-black text-2xl md:text-3xl lg:text-5xl tabular-nums tracking-widest ${mpState.timer < 60 ? "text-red-500" : "text-white"}`}>{formatTime(mpState.timer)}</span>
-                        </div>
+                if (view === 'game') {
+                    const isFever = feverTimer > 0;
+                    const bgClass = isFever ? 'bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500' : 'bg-gray-900';
+                    const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
 
-                        <button onClick={() => setView('menu')} className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 z-50 bg-red-600/80 hover:bg-red-600 backdrop-blur text-white px-6 md:px-8 py-2 md:py-3 rounded-full font-bold text-sm md:text-base lg:text-lg shadow-lg border border-red-400 transition-all">
-                            Akhiri Duel
-                        </button>
+                    return (
+                        <div className={`min-h-[100dvh] flex flex-col items-center relative overflow-y-auto font-nunito p-4 md:p-8 transition-colors duration-500 ${bgClass}`} style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}>
+                            <FullscreenButton />
+                            {floatingTexts.map(ft => ( <FloatingText key={ft.id} text={ft.text} x={ft.x} y={ft.y} onComplete={() => setFloatingTexts(prev => prev.filter(t => t.id !== ft.id))} /> ))}
 
-                        <div className="flex-1 flex flex-col md:flex-row w-full min-h-max">
-                            {renderPlayerBoard('p1', mpSetup.p1Name, 'orange')}
-                            <div className="h-2 md:h-full w-full md:w-2 bg-gray-950 shadow-[0_0_20px_rgba(0,0,0,1)] z-10 shrink-0"></div>
-                            {renderPlayerBoard('p2', mpSetup.p2Name, 'blue')}
-                        </div>
-
-                        {mpState.winner === 'draw' && (
-                            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
-                                <div className="text-center text-white">
-                                    <span className="text-7xl md:text-8xl lg:text-9xl">⏳</span>
-                                    <h2 className="text-5xl md:text-7xl lg:text-9xl font-black mt-6 tracking-widest uppercase">WAKTU HABIS</h2>
-                                    <p className="text-2xl md:text-3xl lg:text-4xl text-gray-400 font-bold mt-4">PERTANDINGAN SERI</p>
+                            {isFever && (
+                                <div className="w-full max-w-lg md:max-w-2xl lg:max-w-4xl bg-black/30 rounded-full h-3 md:h-4 mb-4 md:mb-6 overflow-hidden backdrop-blur-sm border border-yellow-300 shadow-[0_0_20px_rgba(250,204,21,0.6)]">
+                                    <div className="h-full bg-yellow-400 shadow-[0_0_10px_#fff]" style={{ width: `${(feverTimer/10)*100}%`, transition: 'width 1s linear' }}></div>
                                 </div>
-                            </div>
-                        )}
-                    </div>
-                );
-            }
+                            )}
 
-            if (view === 'game') {
-                const isFever = feverTimer > 0;
-                const bgClass = isFever ? 'bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500' : 'bg-gray-900';
-                const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
-
-                return (
-                    <div className={`min-h-[100dvh] flex flex-col items-center relative overflow-y-auto font-nunito p-4 md:p-8 transition-colors duration-500 ${bgClass}`} style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}>
-                        <FullscreenButton />
-                        {floatingTexts.map(ft => ( <FloatingText key={ft.id} text={ft.text} x={ft.x} y={ft.y} onComplete={() => setFloatingTexts(prev => prev.filter(t => t.id !== ft.id))} /> ))}
-
-                        {isFever && (
-                            <div className="w-full max-w-lg md:max-w-2xl lg:max-w-4xl bg-black/30 rounded-full h-3 md:h-4 mb-4 md:mb-6 overflow-hidden backdrop-blur-sm border border-yellow-300 shadow-[0_0_20px_rgba(250,204,21,0.6)]">
-                                <div className="h-full bg-yellow-400 shadow-[0_0_10px_#fff]" style={{ width: `${(feverTimer/10)*100}%`, transition: 'width 1s linear' }}></div>
-                            </div>
-                        )}
-
-                        <div className="w-full max-w-lg md:max-w-2xl lg:max-w-4xl flex flex-col h-full flex-1 gap-2 md:gap-8 lg:gap-10 pb-10">
-                            <div className={`p-4 md:p-6 lg:p-8 rounded-3xl flex justify-between items-center shadow-2xl border-b-8 ${isFever ? 'bg-yellow-900/80 border-yellow-950 backdrop-blur-md' : 'bg-gray-800 border-gray-950'}`}>
-                                <div className="flex gap-1 md:gap-2 text-red-500">
-                                    {[...Array(3)].map((_, i) => <Heart key={i} fill={i < lives ? "currentColor" : "none"} className={`w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 ${i >= lives ? "text-white/20" : ""}`} />)}
-                                </div>
-                                <div className="text-center">
-                                    <div className={`text-sm md:text-base lg:text-lg font-bold uppercase tracking-widest flex items-center justify-center gap-2 ${isFever ? 'text-yellow-200' : 'text-gray-400'}`}>
-                                        <span>Pulau {currentIsland.name}</span>
+                            <div className="w-full max-w-lg md:max-w-2xl lg:max-w-4xl flex flex-col h-full flex-1 gap-2 md:gap-8 lg:gap-10 pb-10">
+                                <div className={`p-4 md:p-6 lg:p-8 rounded-3xl flex justify-between items-center shadow-2xl border-b-8 ${isFever ? 'bg-yellow-900/80 border-yellow-950 backdrop-blur-md' : 'bg-gray-800 border-gray-950'}`}>
+                                    <div className="flex gap-1 md:gap-2 text-red-500">
+                                        {[...Array(3)].map((_, i) => <Heart key={i} fill={i < lives ? "currentColor" : "none"} className={`w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 ${i >= lives ? "text-white/20" : ""}`} />)}
                                     </div>
-                                    <div className="text-4xl md:text-5xl lg:text-6xl font-black text-white">{score}</div>
-                                    {isFever && <div className="text-xs md:text-sm font-black text-yellow-300 animate-pulse">🔥 x3 POINT AKTIF 🔥</div>}
-                                </div>
-                                <div className={`px-4 py-2 md:px-6 md:py-3 rounded-2xl flex items-center gap-2 border-b-4 ${isFever ? 'bg-red-600 border-red-800' : 'bg-gray-700 border-gray-900'}`}>
-                                    {isFever ? <Flame className="w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-yellow-300 fill-yellow-300 animate-bounce"/> : <Clock className={`w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-yellow-400'}`}/>}
-                                    <span className={`font-black text-2xl md:text-3xl lg:text-4xl ${timeLeft <= 10 && !isFever ? 'text-red-500' : 'text-white'}`}>{timeLeft}s</span>
-                                </div>
-                            </div>
-
-                            <div className="flex-1 flex flex-col justify-center items-center relative w-full mt-4">
-                                {!selectedBlock ? (
-                                    <div className={`w-full max-w-[280px] md:max-w-[450px] lg:max-w-[600px] aspect-square p-3 md:p-5 lg:p-6 shadow-2xl relative border-8 rounded-[2rem] ${isFever ? 'bg-orange-600 border-yellow-400' : 'bg-gray-800 border-gray-700'}`}>
-                                        <div className="absolute inset-3 md:inset-5 lg:inset-6 rounded-2xl bg-cover bg-center opacity-80" style={{ backgroundImage: `url(${activeBatik.bgImage})`}}></div>
-                                        <div className="grid grid-cols-4 grid-rows-4 gap-2 w-full h-full relative z-10">
-                                            {grid.map(b => (
-                                                <button key={b.id} onPointerDown={(e) => { e.preventDefault(); if(b.active) { setSelectedBlock(b); setInputAnswer(''); setFeedback(null); }}}
-                                                    className={`rounded-xl transition-all transform flex items-center justify-center font-bold text-2xl md:text-3xl lg:text-4xl shadow-[0_6px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-1 select-none
-                                                        ${!b.active ? 'opacity-0 pointer-events-none scale-50' : 'opacity-100 scale-100'}
-                                                        ${b.isSpecial ? 'bg-gradient-to-br from-yellow-400 to-amber-500' : (isFever ? 'bg-gradient-to-br from-red-500 to-orange-500' : 'bg-gradient-to-br from-blue-400 to-blue-600')}`}>
-                                                    {b.active && (b.isSpecial ? <span className="text-white drop-shadow-md">★</span> : <span className="text-white/30 text-lg md:text-2xl">?</span>)}
-                                                </button>
-                                            ))}
+                                    <div className="text-center">
+                                        <div className={`text-sm md:text-base lg:text-lg font-bold uppercase tracking-widest flex items-center justify-center gap-2 ${isFever ? 'text-yellow-200' : 'text-gray-400'}`}>
+                                            <span>Pulau {currentIsland.name}</span>
                                         </div>
+                                        <div className="text-4xl md:text-5xl lg:text-6xl font-black text-white">{score}</div>
+                                        {isFever && <div className="text-xs md:text-sm font-black text-yellow-300 animate-pulse">🔥 x3 POINT AKTIF 🔥</div>}
                                     </div>
-                                ) : (
-                                    <div className="bg-white rounded-[2rem] p-6 md:p-10 lg:p-12 shadow-2xl w-full max-w-sm md:max-w-xl lg:max-w-2xl border-4 border-gray-200">
-                                        <div className="flex justify-between items-center mb-6 md:mb-10 lg:mb-12">
-                                            <button onPointerDown={(e) => { e.preventDefault(); setSelectedBlock(null); }} className="text-gray-400 bg-gray-100 p-3 md:p-4 lg:p-5 rounded-full hover:bg-gray-200 select-none"><ArrowLeft className="w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10"/></button>
-                                            <div className="text-4xl md:text-5xl lg:text-7xl font-black text-gray-800 tracking-wider text-center flex-1">
-                                                {selectedBlock.q.text} = <span className={`inline-block min-w-[80px] md:min-w-[120px] lg:min-w-[150px] text-center border-b-8 pb-2 ${feedback === 'wrong' ? 'border-red-500 text-red-500' : 'border-blue-500 text-blue-600'}`}>{inputAnswer || '?'}</span>
+                                    <div className={`px-4 py-2 md:px-6 md:py-3 rounded-2xl flex items-center gap-2 border-b-4 ${isFever ? 'bg-red-600 border-red-800' : 'bg-gray-700 border-gray-900'}`}>
+                                        {isFever ? <Flame className="w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-yellow-300 fill-yellow-300 animate-bounce"/> : <Clock className={`w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-yellow-400'}`}/>}
+                                        <span className={`font-black text-2xl md:text-3xl lg:text-4xl ${timeLeft <= 10 && !isFever ? 'text-red-500' : 'text-white'}`}>{timeLeft}s</span>
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 flex flex-col justify-center items-center relative w-full mt-4">
+                                    {!selectedBlock ? (
+                                        <div className={`w-full max-w-[280px] md:max-w-[450px] lg:max-w-[600px] aspect-square p-3 md:p-5 lg:p-6 shadow-2xl relative border-8 rounded-[2rem] ${isFever ? 'bg-orange-600 border-yellow-400' : 'bg-gray-800 border-gray-700'}`}>
+                                            <div className="absolute inset-3 md:inset-5 lg:inset-6 rounded-2xl bg-cover bg-center opacity-80" style={{ backgroundImage: `url(${activeBatik.bgImage})`}}></div>
+                                            <div className="grid grid-cols-4 grid-rows-4 gap-2 w-full h-full relative z-10">
+                                                {grid.map(b => (
+                                                    <button key={b.id} onPointerDown={(e) => { e.preventDefault(); if(b.active) { setSelectedBlock(b); setInputAnswer(''); setFeedback(null); }}}
+                                                        className={`rounded-xl transition-all transform flex items-center justify-center font-bold text-2xl md:text-3xl lg:text-4xl shadow-[0_6px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-1 select-none
+                                                            ${!b.active ? 'opacity-0 pointer-events-none scale-50' : 'opacity-100 scale-100'}
+                                                            ${b.isSpecial ? 'bg-gradient-to-br from-yellow-400 to-amber-500' : (isFever ? 'bg-gradient-to-br from-red-500 to-orange-500' : 'bg-gradient-to-br from-blue-400 to-blue-600')}`}>
+                                                        {b.active && (b.isSpecial ? <span className="text-white drop-shadow-md">★</span> : <span className="text-white/30 text-lg md:text-2xl">?</span>)}
+                                                    </button>
+                                                ))}
                                             </div>
                                         </div>
-                                        <div className="flex justify-center gap-4 mb-6 md:mb-8">
-                                            <button onPointerDown={(e) => { e.preventDefault(); if(powerups.hint>0){ setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, hint: p.hint-1}))} }} disabled={powerups.hint <= 0} className="flex items-center gap-2 bg-green-100 text-green-700 px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base lg:text-lg disabled:opacity-50 select-none">
-                                                <Lightbulb className="w-5 h-5 md:w-6 md:h-6"/> Petunjuk ({powerups.hint})
-                                            </button>
-                                            <button onPointerDown={(e) => { e.preventDefault(); if(powerups.bomb>0){ updateQuestProgress('use_bomb'); setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, bomb: p.bomb-1})); setTimeout(()=>submitAnswer(e), 100); } }} disabled={powerups.bomb <= 0} className="flex items-center gap-2 bg-red-100 text-red-700 px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base lg:text-lg disabled:opacity-50 select-none">
-                                                <Bomb className="w-5 h-5 md:w-6 md:h-6"/> Bom ({powerups.bomb})
-                                            </button>
+                                    ) : (
+                                        <div className="bg-white rounded-[2rem] p-6 md:p-10 lg:p-12 shadow-2xl w-full max-w-sm md:max-w-xl lg:max-w-2xl border-4 border-gray-200">
+                                            <div className="flex justify-between items-center mb-6 md:mb-10 lg:mb-12">
+                                                <button onPointerDown={(e) => { e.preventDefault(); setSelectedBlock(null); }} className="text-gray-400 bg-gray-100 p-3 md:p-4 lg:p-5 rounded-full hover:bg-gray-200 select-none"><ArrowLeft className="w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10"/></button>
+                                                <div className="text-4xl md:text-5xl lg:text-7xl font-black text-gray-800 tracking-wider text-center flex-1">
+                                                    {selectedBlock.q.text} = <span className={`inline-block min-w-[80px] md:min-w-[120px] lg:min-w-[150px] text-center border-b-8 pb-2 ${feedback === 'wrong' ? 'border-red-500 text-red-500' : 'border-blue-500 text-blue-600'}`}>{inputAnswer || '?'}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-center gap-4 mb-6 md:mb-8">
+                                                <button onPointerDown={(e) => { e.preventDefault(); if(powerups.hint>0){ setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, hint: p.hint-1}))} }} disabled={powerups.hint <= 0} className="flex items-center gap-2 bg-green-100 text-green-700 px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base lg:text-lg disabled:opacity-50 select-none">
+                                                    <Lightbulb className="w-5 h-5 md:w-6 md:h-6"/> Petunjuk ({powerups.hint})
+                                                </button>
+                                                <button onPointerDown={(e) => { e.preventDefault(); if(powerups.bomb>0){ updateQuestProgress('use_bomb'); setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, bomb: p.bomb-1})); setTimeout(()=>submitAnswer(e), 100); } }} disabled={powerups.bomb <= 0} className="flex items-center gap-2 bg-red-100 text-red-700 px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base lg:text-lg disabled:opacity-50 select-none">
+                                                    <Bomb className="w-5 h-5 md:w-6 md:h-6"/> Bom ({powerups.bomb})
+                                                </button>
+                                            </div>
+                                            {renderNumpad(inputAnswer, setInputAnswer, submitAnswer, false, false)}
                                         </div>
-                                        {renderNumpad(inputAnswer, setInputAnswer, submitAnswer, false, false)}
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                );
-            }
+                    );
+                }
 
-            if (view === 'gameover' || view === 'win') {
-                const isWin = view === 'win';
-                const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
-                return (
-                    <div className={`min-h-[100dvh] flex flex-col items-center justify-center p-6 md:p-10 font-nunito ${isWin ? 'bg-green-50' : 'bg-red-50'} overflow-y-auto`}>
-                        <div className="bg-white p-8 md:p-12 lg:p-16 rounded-[3rem] shadow-2xl max-w-sm md:max-w-2xl w-full text-center border-4 border-gray-100 mt-12 mb-12">
-                            <div className="text-8xl md:text-9xl mb-6 md:mb-10">{isWin ? '🏝️' : (timeLeft <= 0 ? '⏰' : '💥')}</div>
-                            <h2 className={`text-4xl md:text-5xl lg:text-6xl font-black mb-4 ${isWin ? 'text-green-600' : 'text-red-600'}`}>
-                                {isWin ? `PULAU ${currentIsland.name.toUpperCase()} SELESAI!` : (timeLeft <= 0 ? 'WAKTU HABIS!' : 'YAH, GAGAL...')}
-                            </h2>
-                            <p className="text-gray-600 font-bold text-lg md:text-xl lg:text-2xl mb-8 md:mb-12">
-                                {isWin ? 'Luar biasa! Kamu berhasil menaklukkan tantangan di pulau ini.' : 'Tenang saja, skormu sudah tersimpan di Papan Peringkat. Coba lagi yuk!'}
-                            </p>
-                            
-                            <div className="bg-gray-50 rounded-[2rem] p-6 md:p-10 mb-8 md:mb-12 border-2 border-gray-100">
-                                <p className="text-base md:text-lg lg:text-xl font-bold text-gray-400 uppercase tracking-widest mb-2">Skor Akhir</p>
-                                <p className="text-6xl md:text-7xl lg:text-8xl font-black text-orange-500">{score}</p>
-                            </div>
+                if (view === 'gameover' || view === 'win') {
+                    const isWin = view === 'win';
+                    const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
+                    return (
+                        <div className={`min-h-[100dvh] flex flex-col items-center justify-center p-6 md:p-10 font-nunito ${isWin ? 'bg-green-50' : 'bg-red-50'} overflow-y-auto`}>
+                            <div className="bg-white p-8 md:p-12 lg:p-16 rounded-[3rem] shadow-2xl max-w-sm md:max-w-2xl w-full text-center border-4 border-gray-100 my-auto">
+                                <div className="text-8xl md:text-9xl mb-6 md:mb-10">{isWin ? '🏝️' : (timeLeft <= 0 ? '⏰' : '💥')}</div>
+                                <h2 className={`text-4xl md:text-5xl lg:text-6xl font-black mb-4 ${isWin ? 'text-green-600' : 'text-red-600'}`}>
+                                    {isWin ? `PULAU ${currentIsland.name.toUpperCase()} SELESAI!` : (timeLeft <= 0 ? 'WAKTU HABIS!' : 'YAH, GAGAL...')}
+                                </h2>
+                                <p className="text-gray-600 font-bold text-lg md:text-xl lg:text-2xl mb-8 md:mb-12">
+                                    {isWin ? 'Luar biasa! Kamu berhasil menaklukkan tantangan di pulau ini.' : 'Tenang saja, skormu sudah tersimpan di Papan Peringkat. Coba lagi yuk!'}
+                                </p>
+                                
+                                <div className="bg-gray-50 rounded-[2rem] p-6 md:p-10 mb-8 md:mb-12 border-2 border-gray-100">
+                                    <p className="text-base md:text-lg lg:text-xl font-bold text-gray-400 uppercase tracking-widest mb-2">Skor Akhir</p>
+                                    <p className="text-6xl md:text-7xl lg:text-8xl font-black text-orange-500">{score}</p>
+                                </div>
 
-                            <div className="flex flex-col md:flex-row gap-4">
-                                {!isWin && (
-                                    <button onClick={() => startGame(activeBatik.id, level)} className="flex-1 bg-orange-500 text-white py-5 md:py-6 rounded-2xl md:rounded-[2rem] font-black text-xl md:text-2xl shadow-[0_8px_0_rgb(194,65,12)] hover:bg-orange-600 active:shadow-[0_0px_0_rgb(194,65,12)] active:translate-y-2 transition-all">
-                                        ULANGI LEVEL
+                                <div className="flex flex-col md:flex-row gap-4">
+                                    {!isWin && (
+                                        <button onClick={() => startGame(activeBatik.id, level)} className="flex-1 bg-orange-500 text-white py-5 md:py-6 rounded-2xl md:rounded-[2rem] font-black text-xl md:text-2xl shadow-[0_8px_0_rgb(194,65,12)] hover:bg-orange-600 active:shadow-[0_0px_0_rgb(194,65,12)] active:translate-y-2 transition-all">
+                                            ULANGI LEVEL
+                                        </button>
+                                    )}
+                                    <button onClick={() => setView('map')} className="flex-1 bg-gray-800 text-white py-5 md:py-6 rounded-2xl md:rounded-[2rem] font-black text-xl md:text-2xl shadow-[0_8px_0_rgb(17,24,39)] hover:bg-gray-900 active:shadow-[0_0px_0_rgb(17,24,39)] active:translate-y-2 transition-all">
+                                        KEMBALI KE PETA
                                     </button>
-                                )}
-                                <button onClick={() => setView('map')} className="flex-1 bg-gray-800 text-white py-5 md:py-6 rounded-2xl md:rounded-[2rem] font-black text-xl md:text-2xl shadow-[0_8px_0_rgb(17,24,39)] hover:bg-gray-900 active:shadow-[0_0px_0_rgb(17,24,39)] active:translate-y-2 transition-all">
-                                    KEMBALI KE PETA
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+
+                if (view === 'skin-select') {
+                    const ownedIds = userData?.ownedBatiks || [];
+                    const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
+                    const islandBatiks = BATIKS.filter(b => b.islandId === level);
+
+                    return (
+                        <div className="min-h-[100dvh] bg-gray-50 p-4 md:p-8 font-nunito flex flex-col items-center overflow-y-auto">
+                            <FullscreenButton />
+                            <div className="w-full max-w-lg md:max-w-4xl lg:max-w-6xl my-auto py-8">
+                                <div className="flex items-center gap-4 md:gap-6 mb-8 md:mb-12">
+                                    <button onClick={() => setView('map')} className="p-4 bg-white rounded-full shadow-sm text-gray-600 hover:bg-gray-100"><ArrowLeft size={28}/></button>
+                                    <div>
+                                        <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-800">Motif {currentIsland.name}</h2>
+                                        <p className="font-bold text-gray-500 mt-1">Pilih motif batik daerah untuk dimainkan</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                                    {islandBatiks.map(b => {
+                                        const isOwned = b.price === 0 || ownedIds.includes(b.id);
+                                        return (
+                                            <div key={b.id} 
+                                                onClick={() => { if(isOwned) startGame(b.id, level) }}
+                                                className={`p-6 rounded-[2rem] border-4 text-left flex flex-col items-start gap-4 transition-all ${isOwned ? 'bg-white border-orange-200 hover:border-orange-500 shadow-xl hover:-translate-y-2 cursor-pointer' : 'bg-gray-100 border-gray-200 opacity-90'}`}>
+                                                <div className="w-full aspect-[4/3] rounded-2xl bg-gray-200 overflow-hidden relative" style={{ backgroundImage: `url(${b.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                                                    {!isOwned && <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-sm"><Lock size={48} className="text-white opacity-80"/></div>}
+                                                </div>
+                                                <div className="w-full flex-1 flex flex-col justify-between">
+                                                    <div>
+                                                        <h3 className="font-black text-2xl md:text-3xl text-gray-800 mb-1">{b.name}</h3>
+                                                        <p className="text-sm md:text-base font-bold text-gray-400 mb-4">{b.mathConcept}</p>
+                                                    </div>
+                                                    
+                                                    {isOwned ? (
+                                                        <span className="text-sm md:text-base font-black bg-orange-100 text-orange-600 px-4 py-3 rounded-xl flex items-center justify-center w-full">Siap Pakai</span>
+                                                    ) : (
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); buyBatik(b); }}
+                                                            className={`px-4 py-3 rounded-xl font-black text-sm md:text-base flex items-center justify-between w-full transition-all ${
+                                                                (userData?.points || 0) >= b.price 
+                                                                ? 'bg-amber-500 text-white hover:bg-amber-600 active:scale-95 shadow-[0_4px_0_rgb(180,83,9)] active:shadow-none active:translate-y-1' 
+                                                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                            }`}
+                                                        >
+                                                            <span className="flex items-center gap-2"><Lock size={18}/> Buka Motif</span>
+                                                            <span>{b.price.toLocaleString()} Poin</span>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+
+                return <div className="p-4 text-center font-nunito">Memuat Komponen Game...</div>;
+            };
+
+            return (
+                <React.Fragment>
+                    {/* Global Daily Login & Quest Popup */}
+                    {dailyPopup.show && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                            <div className="bg-white rounded-[2rem] p-6 md:p-8 max-w-md w-full text-center shadow-2xl transform transition-all animate-bounce-in border-4 border-amber-200">
+                                <div className="text-6xl md:text-7xl mb-2">🎁</div>
+                                <h2 className="text-3xl md:text-4xl font-black text-amber-500 mb-2">Hadiah Harian!</h2>
+                                <p className="text-gray-600 font-bold mb-4">Terima kasih sudah kembali belajar hari ini.</p>
+                                
+                                <div className="bg-amber-50 rounded-2xl p-4 mb-4 border-2 border-amber-200 flex flex-col items-center">
+                                    <div className="flex justify-center items-center gap-2 mb-1">
+                                        <Flame className="text-orange-500" size={28}/>
+                                        <span className="font-black text-orange-600 text-2xl">{dailyPopup.streak} Hari Streak!</span>
+                                    </div>
+                                    <p className="text-sm font-bold text-amber-700/70 uppercase">Bonus Poin Langsung</p>
+                                    <p className="text-5xl font-black text-amber-500">+{dailyPopup.bonus}</p>
+                                </div>
+
+                                <div className="text-left bg-teal-50 rounded-2xl p-4 mb-6 border-2 border-teal-100">
+                                    <p className="text-sm font-black text-teal-700 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                        <CalendarCheck size={18}/> Misi Hari Ini
+                                    </p>
+                                    <ul className="space-y-3">
+                                        {dailyPopup.quests.slice(0, 3).map((q, i) => (
+                                            <li key={i} className="flex items-start gap-2 text-sm md:text-base font-bold text-gray-700">
+                                                <span className="text-teal-500 shrink-0">❖</span> 
+                                                <span className="flex-1 leading-tight">{q.title}</span> 
+                                                <span className="text-orange-500 bg-orange-100 px-2 py-0.5 rounded-md text-xs whitespace-nowrap shrink-0">+{q.reward} Poin</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+
+                                <button 
+                                    onClick={() => setDailyPopup({ ...dailyPopup, show: false })}
+                                    className="w-full bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white py-4 rounded-xl font-black text-xl shadow-[0_6px_0_rgb(180,83,9)] active:translate-y-1 active:shadow-none transition-all uppercase tracking-wider"
+                                >
+                                    Siap Berpetualang!
                                 </button>
                             </div>
                         </div>
-                    </div>
-                );
-            }
+                    )}
 
-            if (view === 'skin-select') {
-                const ownedIds = userData?.ownedBatiks || [];
-                const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
-                const islandBatiks = BATIKS.filter(b => b.islandId === level);
-
-                return (
-                    <div className="min-h-[100dvh] bg-gray-50 p-4 md:p-8 font-nunito flex flex-col items-center overflow-y-auto">
-                        <FullscreenButton />
-                        <div className="w-full max-w-lg md:max-w-4xl lg:max-w-6xl mt-8 mb-12">
-                            <div className="flex items-center gap-4 md:gap-6 mb-8 md:mb-12">
-                                <button onClick={() => setView('map')} className="p-4 bg-white rounded-full shadow-sm text-gray-600 hover:bg-gray-100"><ArrowLeft size={28}/></button>
-                                <div>
-                                    <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-800">Motif {currentIsland.name}</h2>
-                                    <p className="font-bold text-gray-500 mt-1">Pilih motif batik daerah untuk dimainkan</p>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-                                {islandBatiks.map(b => {
-                                    const isOwned = b.price === 0 || ownedIds.includes(b.id);
-                                    return (
-                                        <div key={b.id} 
-                                            onClick={() => { if(isOwned) startGame(b.id, level) }}
-                                            className={`p-6 rounded-[2rem] border-4 text-left flex flex-col items-start gap-4 transition-all ${isOwned ? 'bg-white border-orange-200 hover:border-orange-500 shadow-xl hover:-translate-y-2 cursor-pointer' : 'bg-gray-100 border-gray-200 opacity-90'}`}>
-                                            <div className="w-full aspect-[4/3] rounded-2xl bg-gray-200 overflow-hidden relative" style={{ backgroundImage: `url(${b.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-                                                {!isOwned && <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-sm"><Lock size={48} className="text-white opacity-80"/></div>}
-                                            </div>
-                                            <div className="w-full flex-1 flex flex-col justify-between">
-                                                <div>
-                                                    <h3 className="font-black text-2xl md:text-3xl text-gray-800 mb-1">{b.name}</h3>
-                                                    <p className="text-sm md:text-base font-bold text-gray-400 mb-4">{b.mathConcept}</p>
-                                                </div>
-                                                
-                                                {isOwned ? (
-                                                    <span className="text-sm md:text-base font-black bg-orange-100 text-orange-600 px-4 py-3 rounded-xl flex items-center justify-center w-full">Siap Pakai</span>
-                                                ) : (
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); buyBatik(b); }}
-                                                        className={`px-4 py-3 rounded-xl font-black text-sm md:text-base flex items-center justify-between w-full transition-all ${
-                                                            (userData?.points || 0) >= b.price 
-                                                            ? 'bg-amber-500 text-white hover:bg-amber-600 active:scale-95 shadow-[0_4px_0_rgb(180,83,9)] active:shadow-none active:translate-y-1' 
-                                                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                                        }`}
-                                                    >
-                                                        <span className="flex items-center gap-2"><Lock size={18}/> Buka Motif</span>
-                                                        <span>{b.price.toLocaleString()} Poin</span>
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-                );
-            }
-
-            return <div className="p-4 text-center font-nunito">Memuat Komponen Game...</div>;
+                    {/* View Utama */}
+                    {renderView()}
+                </React.Fragment>
+            );
         }
 
         const root = createRoot(document.getElementById('root'));
