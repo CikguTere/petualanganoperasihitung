@@ -137,7 +137,7 @@
         // 2. HELPER COMPONENTS & ANIMATIONS
         // ==========================================
 
-        // Fungsi Pembuat Kunci Akun Deterministik (Pencegah Duplikat Data)
+        // Fungsi Pembuat Kunci Akun Deterministik (Pencegah Duplikat Data & Penjamin Akumulasi)
         const getPlayerKey = (name, school, province) => {
             const safeName = (name || 'pemain').toLowerCase().replace(/[^a-z0-9]/g, '');
             const safeSchool = (school || '-').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -202,7 +202,6 @@
             const [powerups, setPowerups] = useState({ bomb: 3, hint: 5 });
             const [floatingTexts, setFloatingTexts] = useState([]);
 
-            // State Refs (Mencegah Stale Closure pada Timer/Callback)
             const scoreRef = useRef(0);
             const userDataRef = useRef(userData);
             
@@ -219,7 +218,7 @@
 
             // --- Firebase Init ---
             const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'batik-matika-v9';
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'batik-matika-v10';
             
             useEffect(() => {
                 if (!firebaseConfig) { setView('landing'); return; }
@@ -256,18 +255,11 @@
                     } else { setView('login'); }
                 });
 
-                // Sinkronisasi Leaderboard
+                // Sinkronisasi Leaderboard - Murni tanpa filter aneh agar semua tercatat
                 const lbRef = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
                 const unsubLb = onSnapshot(lbRef, (snap) => {
-                    const rawData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    const uniquePlayersMap = new Map();
-                    rawData.forEach(player => {
-                        const key = `${player.name}_${player.school}_${player.province}`.toLowerCase().trim();
-                        if (!uniquePlayersMap.has(key) || uniquePlayersMap.get(key).points < (player.points || 0)) {
-                            uniquePlayersMap.set(key, player);
-                        }
-                    });
-                    const data = Array.from(uniquePlayersMap.values());
+                    const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    // Urutkan ulang berdasarkan Poin Tertinggi
                     data.sort((a, b) => (b.points || 0) - (a.points || 0));
                     setLeaderboardData(data);
                 }, (err) => console.error("Leaderboard Error:", err));
@@ -275,7 +267,7 @@
                 return () => { unsubProfile(); unsubLb(); };
             }, [user]);
 
-            // --- SISTEM DAILY QUESTS & STREAK DENGAN POP-UP ---
+            // --- SISTEM DAILY QUESTS & STREAK ---
             const checkDailyLogin = (data) => {
                 const today = new Date().toDateString();
                 const yesterdayDate = new Date();
@@ -289,7 +281,6 @@
                 let currentBonus = 0;
                 let currentQuests = data.quests || QUEST_TEMPLATES.map(q => ({ ...q, progress: 0, claimed: false }));
 
-                // Cek Login Streak
                 if (data.lastLoginDate !== today) {
                     updates.lastLoginDate = today;
                     if (data.lastLoginDate === yesterday) {
@@ -298,8 +289,6 @@
                         currentStreak = 1;
                     }
                     updates.loginStreak = currentStreak;
-                    
-                    // Beri bonus streak harian (Contoh: 50 poin * Streak)
                     currentBonus = currentStreak * 50;
                     updates.points = (data.points || 0) + currentBonus;
                     
@@ -307,7 +296,6 @@
                     needUpdate = true;
                 }
 
-                // Cek Quests (Reset tiap hari)
                 if (data.lastQuestDate !== today) {
                     updates.lastQuestDate = today;
                     currentQuests = QUEST_TEMPLATES.map(q => ({ ...q, progress: 0, claimed: false }));
@@ -315,13 +303,8 @@
                     needUpdate = true;
                 }
 
-                if (needUpdate) {
-                    saveUserData(updates);
-                }
-
-                if (showPopup) {
-                    setDailyPopup({ show: true, streak: currentStreak, bonus: currentBonus, quests: currentQuests });
-                }
+                if (needUpdate) saveUserData(updates);
+                if (showPopup) setDailyPopup({ show: true, streak: currentStreak, bonus: currentBonus, quests: currentQuests });
             };
 
             const updateQuestProgress = (questType, amount = 1) => {
@@ -368,7 +351,7 @@
                     const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main');
                     await setDoc(profileRef, { ...newData, updatedAt: serverTimestamp() }, { merge: true });
 
-                    // Sinkron ke Leaderboard menggunakan Kunci Unik Deterministik (Identitas Pemain)
+                    // Sinkron ke Leaderboard menggunakan Kunci Unik Deterministik
                     const mergedData = { ...(userDataRef.current || {}), ...newData };
                     
                     if (mergedData.name || mergedData.school || mergedData.province) {
@@ -384,7 +367,6 @@
                             updatedAt: serverTimestamp()
                         };
                         
-                        // Timpa nilai poin absolut di papan peringkat agar selalu sama dengan poin lokal
                         if (mergedData.points !== undefined) lbUpdate.points = mergedData.points;
                         
                         await setDoc(publicRef, lbUpdate, { merge: true });
@@ -392,13 +374,14 @@
                 } catch (e) { console.error("Save Data Error", e); }
             };
 
+            // Menambahkan Poin saat menekan tombol Keluar/Ulangi
             const recordGamePoints = async (earnedPoints) => {
                 if (earnedPoints <= 0) return;
                 
                 const currentData = userDataRef.current;
                 const newTotalPoints = (currentData?.points || 0) + earnedPoints;
 
-                // Update UI lokal seketika
+                // Update UI lokal
                 setUserData(prev => ({ ...prev, points: newTotalPoints }));
 
                 if (user && firebaseConfig) {
@@ -414,17 +397,29 @@
                     
                     try {
                         await setDoc(profileRef, { points: newTotalPoints, updatedAt: serverTimestamp() }, { merge: true });
+                        // Increment ke data public leaderbord agar tidak pernah ter-reset
                         await setDoc(publicRef, {
                             name: pName,
                             school: pSchool,
                             province: pProv,
                             unlockedLevel: currentData?.unlockedLevel || 1,
                             avatar: currentData?.activeAvatar || 'default',
-                            points: newTotalPoints,
+                            points: increment(earnedPoints),
                             updatedAt: serverTimestamp()
                         }, { merge: true });
                     } catch (e) { console.error("Sync Error", e); }
                 }
+            };
+
+            // Tombol AKSI KELUAR untuk menyimpan poin
+            const handleSaveAndExit = () => {
+                recordGamePoints(scoreRef.current);
+                setView('map');
+            };
+
+            const handleSaveAndReplay = () => {
+                recordGamePoints(scoreRef.current);
+                startGame(activeBatik.id, level);
             };
 
             const handleLogin = async (e) => {
@@ -434,11 +429,10 @@
                     return;
                 }
 
-                // Cek rekam jejak di Leaderboard menggunakan kombinasi Nama, Sekolah, dan Provinsi
+                // Cek rekam jejak menggunakan kombinasi Nama, Sekolah, dan Provinsi
                 const pKey = getPlayerKey(loginForm.name, loginForm.school, loginForm.province);
                 const pastRecord = leaderboardData.find(p => p.id === pKey);
 
-                // Kembalikan sisa poin mereka jika ditemukan!
                 const recoveredPoints = pastRecord?.points || 0;
                 const recoveredLevel = pastRecord?.unlockedLevel || 1;
                 const recoveredAvatar = pastRecord?.avatar || 'default';
@@ -457,7 +451,6 @@
                 
                 await saveUserData(initData);
                 
-                // Memicu paksa pop-up misi untuk pengguna yang baru login/mendaftar pertama kali hari ini
                 setDailyPopup({
                     show: true,
                     streak: 1,
@@ -506,7 +499,6 @@
                 }
             };
 
-            // --- Game Logic Dinamis Berdasarkan Pulau (Level) ---
             const generateQuestion = (lvl) => {
                 let types = ['add'];
                 if (lvl >= 2) types.push('sub'); 
@@ -550,7 +542,6 @@
                         setTimeLeft(prev => {
                             if (prev <= 1) {
                                 clearInterval(timer);
-                                recordGamePoints(scoreRef.current);
                                 setView('gameover');
                                 updateQuestProgress('play_solo'); 
                                 return 0;
@@ -586,7 +577,7 @@
                     const newCombo = combo + 1; 
                     setCombo(newCombo);
                     
-                    updateQuestProgress('answer_correct'); // Misi Harian Trigger
+                    updateQuestProgress('answer_correct'); 
                     
                     let isTriggeringFever = false;
                     let currentFever = feverTimer;
@@ -617,7 +608,6 @@
                             const totalLevelScore = score + bonus + earned; 
                             setScore(totalLevelScore);
                             
-                            recordGamePoints(totalLevelScore);
                             updateQuestProgress('play_solo'); 
                             
                             const currentUnlocked = userDataRef.current?.unlockedLevel || 1;
@@ -626,7 +616,7 @@
                                 saveUserData({ unlockedLevel: nextLevel });
                             }
 
-                            alert(`Selamat! Pulau ${ISLANDS[level-1].name} Ditaklukkan!\nBonus Waktu: ${timeLeft * 10}\nBonus Nyawa: ${lives * 50}`);
+                            // Layar kemenangan (Poin belum dicatat sampai klik KELUAR)
                             setView('win');
                         }
                     }, 500);
@@ -639,7 +629,6 @@
                         setFeedback(null); 
                         setInputAnswer(''); 
                         if (lives <= 1) { 
-                            recordGamePoints(scoreRef.current);
                             updateQuestProgress('play_solo'); 
                             setView('gameover'); 
                         } 
@@ -647,7 +636,6 @@
                 }
             };
 
-            // --- Multiplayer Handlers ---
             const startMultiplayer = () => {
                 setMpState({
                     p1: { score: 0, lives: 3, grid: generateGrid(mpSetup.level), activeBlock: null, input: '', feedback: null },
@@ -709,7 +697,6 @@
                 }
             };
 
-            // --- Renderers ---
             const FullscreenButton = () => (
                 <button onClick={toggleFullscreen} className="fixed top-4 right-4 z-50 p-3 bg-white/20 backdrop-blur border border-white/30 text-white rounded-full shadow-lg hover:bg-white/40 transition-all">
                     {isFullscreen ? <Minimize size={24} /> : <Maximize size={24} />}
@@ -740,7 +727,6 @@
                 return currentAvatar ? currentAvatar.icon : '👤';
             };
 
-            // --- VIEW ROUTER ---
             const renderView = () => {
                 if (view === 'loading') return <div className="min-h-[100dvh] bg-orange-50 flex items-center justify-center font-nunito"><div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-600"></div></div>;
 
@@ -1316,7 +1302,7 @@
                                     {isWin ? `PULAU ${currentIsland.name.toUpperCase()} SELESAI!` : (timeLeft <= 0 ? 'WAKTU HABIS!' : 'YAH, GAGAL...')}
                                 </h2>
                                 <p className="text-gray-600 font-bold text-lg md:text-xl lg:text-2xl mb-8 md:mb-12">
-                                    {isWin ? 'Luar biasa! Kamu berhasil menaklukkan tantangan di pulau ini.' : 'Tenang saja, skormu sudah tersimpan di Papan Peringkat. Coba lagi yuk!'}
+                                    {isWin ? 'Luar biasa! Kamu berhasil menaklukkan tantangan di pulau ini.' : 'Poin akan dicatat saat kamu menekan tombol KELUAR di bawah.'}
                                 </p>
                                 
                                 <div className="bg-gray-50 rounded-[2rem] p-6 md:p-10 mb-8 md:mb-12 border-2 border-gray-100">
@@ -1326,12 +1312,12 @@
 
                                 <div className="flex flex-col md:flex-row gap-4">
                                     {!isWin && (
-                                        <button onClick={() => startGame(activeBatik.id, level)} className="flex-1 bg-orange-500 text-white py-5 md:py-6 rounded-2xl md:rounded-[2rem] font-black text-xl md:text-2xl shadow-[0_8px_0_rgb(194,65,12)] hover:bg-orange-600 active:shadow-[0_0px_0_rgb(194,65,12)] active:translate-y-2 transition-all">
+                                        <button onClick={handleSaveAndReplay} className="flex-1 bg-orange-500 text-white py-5 md:py-6 rounded-2xl md:rounded-[2rem] font-black text-xl md:text-2xl shadow-[0_8px_0_rgb(194,65,12)] hover:bg-orange-600 active:shadow-[0_0px_0_rgb(194,65,12)] active:translate-y-2 transition-all">
                                             ULANGI LEVEL
                                         </button>
                                     )}
-                                    <button onClick={() => setView('map')} className="flex-1 bg-gray-800 text-white py-5 md:py-6 rounded-2xl md:rounded-[2rem] font-black text-xl md:text-2xl shadow-[0_8px_0_rgb(17,24,39)] hover:bg-gray-900 active:shadow-[0_0px_0_rgb(17,24,39)] active:translate-y-2 transition-all">
-                                        KEMBALI KE PETA
+                                    <button onClick={handleSaveAndExit} className="flex-1 bg-gray-800 text-white py-5 md:py-6 rounded-2xl md:rounded-[2rem] font-black text-xl md:text-2xl shadow-[0_8px_0_rgb(17,24,39)] hover:bg-gray-900 active:shadow-[0_0px_0_rgb(17,24,39)] active:translate-y-2 transition-all">
+                                        KELUAR & SIMPAN
                                     </button>
                                 </div>
                             </div>
