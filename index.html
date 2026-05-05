@@ -697,14 +697,27 @@
 
                 if (view === 'landing') {
                     return (
-                        <div className="min-h-[100dvh] flex flex-col items-center justify-end p-6 md:p-10 font-nunito bg-cover bg-center bg-no-repeat relative"
-                             style={{ backgroundImage: `url('https://github.com/user-attachments/assets/049296a9-8c28-4a0a-afa6-e96c62810028')` }}>
-                            <FullscreenButton />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none"></div>
-                            <button onClick={() => setView('login')} className="relative z-10 mb-16 md:mb-20 px-12 md:px-16 py-4 md:py-6 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white rounded-full font-black text-3xl md:text-5xl shadow-[0_8px_0_rgb(180,83,9),0_15px_40px_rgba(251,191,36,0.6)] active:shadow-[0_0px_0_rgb(180,83,9)] active:translate-y-2 transition-all transform hover:scale-105 animate-bounce flex items-center gap-4 border-4 border-orange-300/50">
-                                <Play fill="currentColor" className="w-8 h-8 md:w-12 md:h-12" /> PLAY
-                            </button>
-                        </div>
+                        <React.Fragment>
+                            <style>{`
+                                .bg-landing-responsive {
+                                    /* Gambar 9:16 khusus untuk layar HP */
+                                    background-image: url('https://github.com/user-attachments/assets/a44c6c46-11de-4400-861d-b057877d034a'); 
+                                }
+                                @media (min-width: 768px) {
+                                    .bg-landing-responsive {
+                                        /* Gambar 16:9 untuk Layar Lebar (Tablet/Laptop) */
+                                        background-image: url('https://github.com/user-attachments/assets/049296a9-8c28-4a0a-afa6-e96c62810028');
+                                    }
+                                }
+                            `}</style>
+                            <div className="min-h-[100dvh] flex flex-col items-center justify-end p-6 md:p-10 font-nunito bg-cover bg-center bg-no-repeat relative bg-landing-responsive">
+                                <FullscreenButton />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent pointer-events-none"></div>
+                                <button onClick={() => setView('login')} className="relative z-10 mb-20 sm:mb-24 md:mb-20 px-10 sm:px-12 md:px-16 py-3 sm:py-4 md:py-6 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white rounded-full font-black text-2xl sm:text-3xl md:text-5xl shadow-[0_6px_0_rgb(180,83,9),0_15px_30px_rgba(251,191,36,0.5)] md:shadow-[0_8px_0_rgb(180,83,9),0_15px_40px_rgba(251,191,36,0.6)] active:shadow-[0_0px_0_rgb(180,83,9)] active:translate-y-1 md:active:translate-y-2 transition-all transform hover:scale-105 animate-bounce flex items-center gap-3 md:gap-4 border-2 md:border-4 border-orange-300/50">
+                                    <Play fill="currentColor" className="w-6 h-6 sm:w-8 sm:h-8 md:w-12 md:h-12" /> PLAY
+                                </button>
+                            </div>
+                        </React.Fragment>
                     );
                 }
 
