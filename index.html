@@ -43,12 +43,18 @@
         .animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
         .animate-bounce-in { animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        /* Custom Scrollbar untuk Papan Peringkat */
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #fcd34d; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #fbbf24; }
     </style>
 
     <!-- Babel Standalone untuk kompilasi JSX di Browser -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Import Map untuk mengatasi "Failed to resolve module specifier 'react'" -->
+    <!-- Import Map untuk mengatasi Error Resolving Module -->
     <script type="importmap">
     {
         "imports": {
@@ -69,7 +75,7 @@
         import * as lucideReact from 'lucide-react';
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-        import { getFirestore, collection, doc, setDoc, onSnapshot, serverTimestamp, increment } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+        import { getFirestore, collection, doc, setDoc, onSnapshot, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
         // Destrukturisasi Ikon
         const { Play, Users, Trophy, ArrowLeft, Heart, Zap, Lock, School, Clock, Lightbulb, Bomb, Maximize, Minimize, Swords, User, MapPin, Medal, Flame, Map: MapIcon, ChevronRight, Store, CalendarCheck, CheckCircle2, LogOut } = lucideReact;
@@ -95,25 +101,16 @@
         ];
 
         const BATIKS = [
-            // SUMATRA (Level 1)
             { id: 'siger', islandId: 1, name: 'Mahkota Siger', price: 0, mathConcept: 'Geometri: Simetri Lipat', pattern: 'siger', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 100 },
             { id: 'durianpecah', islandId: 1, name: 'Durian Pecah', price: 1000, mathConcept: 'Pecahan & Sudut', pattern: 'durian', bgImage: 'https://images.unsplash.com/photo-1583089851608-592f6c8d76db?auto=format&fit=crop&q=80&w=600', baseScore: 150 },
             { id: 'ikantumbal', islandId: 1, name: 'Ikan Tumbal', price: 3000, mathConcept: 'Translasi Bangun', pattern: 'ikan', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 200 },
-
-            // JAWA (Level 2)
             { id: 'kawung', islandId: 2, name: 'Kawung', price: 0, mathConcept: 'Pola Lingkaran Berpotongan', pattern: 'circles', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 150 },
             { id: 'megamendung', islandId: 2, name: 'Megamendung', price: 2000, mathConcept: 'Kurva & Skala Bertingkat', pattern: 'clouds', bgImage: 'https://images.unsplash.com/photo-1583089851608-592f6c8d76db?auto=format&fit=crop&q=80&w=600', baseScore: 200 },
             { id: 'parang', islandId: 2, name: 'Parang Rusak', price: 4500, mathConcept: 'Garis Sejajar & Gradien', pattern: 'diagonal', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 250 },
-
-            // KALIMANTAN (Level 3)
             { id: 'batanggaring', islandId: 3, name: 'Batang Garing', price: 0, mathConcept: 'Pohon Faktor (Perkalian)', pattern: 'tree', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 200 },
             { id: 'mandau', islandId: 3, name: 'Mandau', price: 2500, mathConcept: 'Garis Tegak Lurus', pattern: 'sword', bgImage: 'https://images.unsplash.com/photo-1583089851608-592f6c8d76db?auto=format&fit=crop&q=80&w=600', baseScore: 250 },
-
-            // BALI (Level 4)
             { id: 'singabarong', islandId: 4, name: 'Singa Barong', price: 0, mathConcept: 'Rotasi Bangun Datar', pattern: 'lion', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 250 },
             { id: 'ulundanu', islandId: 4, name: 'Ulun Danu', price: 3000, mathConcept: 'Refleksi Sumbu X', pattern: 'temple', bgImage: 'https://images.unsplash.com/photo-1583089851608-592f6c8d76db?auto=format&fit=crop&q=80&w=600', baseScore: 300 },
-
-            // NTT (Level 5)
             { id: 'kudasumba', islandId: 5, name: 'Kuda Sumba', price: 0, mathConcept: 'Deret Aritmatika', pattern: 'horse', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 300 },
             { id: 'mamuli', islandId: 5, name: 'Mamuli Rote', price: 4000, mathConcept: 'Geometri Fraktal', pattern: 'jewelry', bgImage: 'https://images.unsplash.com/photo-1583089851608-592f6c8d76db?auto=format&fit=crop&q=80&w=600', baseScore: 350 },
         ];
@@ -134,12 +131,11 @@
         ];
 
         // ==========================================
-        // 2. HELPER COMPONENTS & ANIMATIONS
+        // 2. HELPER COMPONENTS
         // ==========================================
 
-        // Fungsi Pembuat Kunci Akun Deterministik (Pencegah Duplikat Data & Penjamin Akumulasi)
         const getPlayerKey = (name, school, province) => {
-            const safeName = (name || 'pemain').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const safeName = (name || 'anonim').toLowerCase().replace(/[^a-z0-9]/g, '');
             const safeSchool = (school || '-').toLowerCase().replace(/[^a-z0-9]/g, '');
             const safeProv = (province || '-').toLowerCase().replace(/[^a-z0-9]/g, '');
             return `${safeName}_${safeSchool}_${safeProv}`;
@@ -153,10 +149,7 @@
 
             return (
                 <div style={{ left: x, top: y, position: 'absolute', transform: 'translateX(-50%)', zIndex: 50, pointerEvents: 'none' }}>
-                    <div style={{ animation: 'floatUp 1s ease-out forwards', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }} 
-                         className="text-2xl md:text-3xl lg:text-4xl font-black text-white whitespace-nowrap">
-                        {text}
-                    </div>
+                    <div style={{ animation: 'floatUp 1s ease-out forwards', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }} className="text-2xl md:text-3xl lg:text-4xl font-black text-white whitespace-nowrap">{text}</div>
                 </div>
             );
         };
@@ -174,20 +167,18 @@
         // ==========================================
 
         function App() {
-            // --- Global States ---
+            // Global States
             const [user, setUser] = useState(null);
             const [userData, setUserData] = useState(null);
             const [leaderboardData, setLeaderboardData] = useState([]);
             const [view, setView] = useState('loading');
             const [loginForm, setLoginForm] = useState({ name: '', province: '', school: '' });
             const [isFullscreen, setIsFullscreen] = useState(false);
-            
-            // Pop-Up State
             const [dailyPopup, setDailyPopup] = useState({ show: false, streak: 0, bonus: 0, quests: [] });
             
             const timerRef = useRef(null);
             
-            // --- Single Player State ---
+            // Single Player States
             const [activeBatik, setActiveBatik] = useState(BATIKS[0]);
             const [level, setLevel] = useState(1);
             const [grid, setGrid] = useState([]);
@@ -199,7 +190,7 @@
             const [selectedBlock, setSelectedBlock] = useState(null);
             const [inputAnswer, setInputAnswer] = useState('');
             const [feedback, setFeedback] = useState(null);
-            const [powerups, setPowerups] = useState({ bomb: 3, hint: 5 });
+            const [powerups, setPowerups] = useState({ bomb: 3, hint: 5 }); // Default aman
             const [floatingTexts, setFloatingTexts] = useState([]);
 
             const scoreRef = useRef(0);
@@ -208,7 +199,7 @@
             useEffect(() => { scoreRef.current = score; }, [score]);
             useEffect(() => { userDataRef.current = userData; }, [userData]);
 
-            // --- Multiplayer (Duel) State ---
+            // Multiplayer States
             const [mpSetup, setMpSetup] = useState({ p1Name: 'Pemain 1', p2Name: 'Pemain 2', level: 2, timeLimit: 300 });
             const [mpState, setMpState] = useState({
                 p1: { score: 0, lives: 3, grid: [], activeBlock: null, input: '', feedback: null },
@@ -216,9 +207,8 @@
                 timer: 300, winner: null
             });
 
-            // --- Firebase Init ---
             const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'batik-matika-v10';
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'batik-matika-vfinal';
             
             useEffect(() => {
                 if (!firebaseConfig) { setView('landing'); return; }
@@ -236,7 +226,15 @@
 
                 const unsubscribe = onAuthStateChanged(auth, (u) => {
                     setUser(u);
-                    if (!u) setView('landing');
+                    if (!u) {
+                        setView('landing');
+                        // Otomatis buat sesi baru yang bersih saat pemain log out
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            signInWithCustomToken(auth, __initial_auth_token).catch(console.error);
+                        } else { 
+                            signInAnonymously(auth).catch(console.error); 
+                        }
+                    }
                 });
                 return () => unsubscribe();
             }, []);
@@ -249,17 +247,34 @@
                 const unsubProfile = onSnapshot(profileRef, (snap) => {
                     if (snap.exists()) {
                         const data = snap.data();
-                        setUserData(data);
-                        checkDailyLogin(data);
-                        setView(v => (v === 'loading' || v === 'login' || v === 'landing') ? 'menu' : v);
-                    } else { setView('login'); }
+                        // Mencegah auto-login loop: Jika status profil ditandai keluar, tetap di landing
+                        if (data.isLoggedOut) {
+                            setView('landing');
+                        } else {
+                            setUserData(data);
+                            // Cek Quest ketika user load data (otomatis panggil pop-up misi)
+                            checkDailyLogin(data);
+                            setView(v => (v === 'loading' || v === 'login' || v === 'landing') ? 'menu' : v);
+                        }
+                    } else { setView('landing'); }
                 });
 
-                // Sinkronisasi Leaderboard - Murni tanpa filter aneh agar semua tercatat
+                // Sinkronisasi Leaderboard Murni
                 const lbRef = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
                 const unsubLb = onSnapshot(lbRef, (snap) => {
-                    const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    // Urutkan ulang berdasarkan Poin Tertinggi
+                    const rawData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    
+                    const uniquePlayersMap = new Map();
+                    rawData.forEach(player => {
+                        if (!player.name || player.name.toLowerCase().trim() === 'anonim') return;
+                        
+                        const key = `${player.name}_${player.school}_${player.province}`.toLowerCase().trim();
+                        if (!uniquePlayersMap.has(key) || uniquePlayersMap.get(key).points < (player.points || 0)) {
+                            uniquePlayersMap.set(key, player);
+                        }
+                    });
+                    
+                    const data = Array.from(uniquePlayersMap.values());
                     data.sort((a, b) => (b.points || 0) - (a.points || 0));
                     setLeaderboardData(data);
                 }, (err) => console.error("Leaderboard Error:", err));
@@ -267,7 +282,54 @@
                 return () => { unsubProfile(); unsubLb(); };
             }, [user]);
 
-            // --- SISTEM DAILY QUESTS & STREAK ---
+            // --- SISTEM SATU PINTU LOGIKA POIN (Absolute Pointing) ---
+            const addPoints = async (amount) => {
+                if (amount <= 0 || !user || !firebaseConfig) return;
+                const db = getFirestore();
+                
+                const currentData = userDataRef.current || {};
+                const newTotalPoints = (currentData.points || 0) + amount;
+
+                // Update UI Lokal Langsung
+                setUserData(prev => ({ ...prev, points: newTotalPoints }));
+
+                const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main');
+                
+                const pName = currentData.name || loginForm.name || 'Anonim';
+                const pSchool = currentData.school || loginForm.school || '-';
+                const pProv = currentData.province || loginForm.province || '-';
+                const pKey = getPlayerKey(pName, pSchool, pProv);
+                
+                const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', pKey);
+                
+                try {
+                    // Update Profil Personal
+                    await setDoc(profileRef, { points: newTotalPoints, updatedAt: serverTimestamp() }, { merge: true });
+                    
+                    // Update Leaderboard dengan Nilai Absolut yang sama Persis
+                    await setDoc(publicRef, {
+                        name: pName,
+                        school: pSchool,
+                        province: pProv,
+                        unlockedLevel: currentData.unlockedLevel || 1,
+                        avatar: currentData.activeAvatar || 'default',
+                        points: newTotalPoints, 
+                        updatedAt: serverTimestamp()
+                    }, { merge: true });
+                } catch (e) { console.error("Point Sync Error", e); }
+            };
+
+            const saveUserData = async (newData) => {
+                if (!user || !firebaseConfig) { setUserData(prev => ({ ...prev, ...newData })); return; }
+                const db = getFirestore();
+                
+                try {
+                    const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main');
+                    await setDoc(profileRef, { ...newData, updatedAt: serverTimestamp() }, { merge: true });
+                    // Save ini tidak menyentuh poin Leaderboard, hanya profil & quest.
+                } catch (e) { console.error("Save Data Error", e); }
+            };
+
             const checkDailyLogin = (data) => {
                 const today = new Date().toDateString();
                 const yesterdayDate = new Date();
@@ -283,14 +345,9 @@
 
                 if (data.lastLoginDate !== today) {
                     updates.lastLoginDate = today;
-                    if (data.lastLoginDate === yesterday) {
-                        currentStreak += 1;
-                    } else {
-                        currentStreak = 1;
-                    }
+                    if (data.lastLoginDate === yesterday) { currentStreak += 1; } else { currentStreak = 1; }
                     updates.loginStreak = currentStreak;
                     currentBonus = currentStreak * 50;
-                    updates.points = (data.points || 0) + currentBonus;
                     
                     showPopup = true;
                     needUpdate = true;
@@ -303,14 +360,19 @@
                     needUpdate = true;
                 }
 
-                if (needUpdate) saveUserData(updates);
+                if (needUpdate) {
+                    saveUserData(updates);
+                    if (currentBonus > 0) {
+                        // Jalankan setelah state reda agar sinkron sempurna
+                        setTimeout(() => addPoints(currentBonus), 500);
+                    }
+                }
                 if (showPopup) setDailyPopup({ show: true, streak: currentStreak, bonus: currentBonus, quests: currentQuests });
             };
 
             const updateQuestProgress = (questType, amount = 1) => {
                 const currentData = userDataRef.current;
                 if (!currentData || !currentData.quests) return;
-
                 let hasChanges = false;
                 const newQuests = currentData.quests.map(q => {
                     if (q.type === questType && !q.claimed && q.progress < q.target) {
@@ -319,106 +381,35 @@
                     }
                     return q;
                 });
-
                 if (hasChanges) saveUserData({ quests: newQuests });
             };
 
             const claimQuest = (questId) => {
                 const currentData = userDataRef.current;
                 if (!currentData) return;
-                
                 const questIndex = currentData.quests.findIndex(q => q.id === questId);
                 if (questIndex === -1) return;
-
                 const quest = currentData.quests[questIndex];
+                
                 if (quest.progress >= quest.target && !quest.claimed) {
                     const newQuests = [...currentData.quests];
                     newQuests[questIndex].claimed = true;
-                    saveUserData({ 
-                        points: (currentData.points || 0) + quest.reward,
-                        quests: newQuests 
-                    });
+                    saveUserData({ quests: newQuests });
+                    addPoints(quest.reward); // Poin misi dikirim lurus ke addPoints!
                     alert(`🎉 Misi Selesai!\nMendapat +${quest.reward} Poin.`);
                 }
             };
 
-            // --- Fungsi Sinkronisasi Data ---
-            const saveUserData = async (newData) => {
-                if (!user || !firebaseConfig) { setUserData(prev => ({ ...prev, ...newData })); return; }
-                const db = getFirestore();
-                
-                try {
-                    const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main');
-                    await setDoc(profileRef, { ...newData, updatedAt: serverTimestamp() }, { merge: true });
-
-                    // Sinkron ke Leaderboard menggunakan Kunci Unik Deterministik
-                    const mergedData = { ...(userDataRef.current || {}), ...newData };
-                    
-                    if (mergedData.name || mergedData.school || mergedData.province) {
-                        const pKey = getPlayerKey(mergedData.name, mergedData.school, mergedData.province);
-                        const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', pKey);
-                        
-                        const lbUpdate = {
-                            name: mergedData.name || 'Pemain',
-                            school: mergedData.school || '-',
-                            province: mergedData.province || '-',
-                            unlockedLevel: mergedData.unlockedLevel || 1,
-                            avatar: mergedData.activeAvatar || 'default',
-                            updatedAt: serverTimestamp()
-                        };
-                        
-                        if (mergedData.points !== undefined) lbUpdate.points = mergedData.points;
-                        
-                        await setDoc(publicRef, lbUpdate, { merge: true });
-                    }
-                } catch (e) { console.error("Save Data Error", e); }
-            };
-
-            // Menambahkan Poin saat menekan tombol Keluar/Ulangi
-            const recordGamePoints = async (earnedPoints) => {
-                if (earnedPoints <= 0) return;
-                
-                const currentData = userDataRef.current;
-                const newTotalPoints = (currentData?.points || 0) + earnedPoints;
-
-                // Update UI lokal
-                setUserData(prev => ({ ...prev, points: newTotalPoints }));
-
-                if (user && firebaseConfig) {
-                    const db = getFirestore();
-                    const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main');
-                    
-                    const pName = currentData?.name || loginForm.name || 'Pemain';
-                    const pSchool = currentData?.school || loginForm.school || '-';
-                    const pProv = currentData?.province || loginForm.province || '-';
-                    const pKey = getPlayerKey(pName, pSchool, pProv);
-                    
-                    const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', pKey);
-                    
-                    try {
-                        await setDoc(profileRef, { points: newTotalPoints, updatedAt: serverTimestamp() }, { merge: true });
-                        // Increment ke data public leaderbord agar tidak pernah ter-reset
-                        await setDoc(publicRef, {
-                            name: pName,
-                            school: pSchool,
-                            province: pProv,
-                            unlockedLevel: currentData?.unlockedLevel || 1,
-                            avatar: currentData?.activeAvatar || 'default',
-                            points: increment(earnedPoints),
-                            updatedAt: serverTimestamp()
-                        }, { merge: true });
-                    } catch (e) { console.error("Sync Error", e); }
-                }
-            };
-
-            // Tombol AKSI KELUAR untuk menyimpan poin
+            // Tombol AKSI KELUAR untuk menyimpan poin game
             const handleSaveAndExit = () => {
-                recordGamePoints(scoreRef.current);
+                if(scoreRef.current > 0) addPoints(scoreRef.current);
+                setScore(0);
                 setView('map');
             };
 
             const handleSaveAndReplay = () => {
-                recordGamePoints(scoreRef.current);
+                if(scoreRef.current > 0) addPoints(scoreRef.current);
+                setScore(0);
                 startGame(activeBatik.id, level);
             };
 
@@ -429,7 +420,7 @@
                     return;
                 }
 
-                // Cek rekam jejak menggunakan kombinasi Nama, Sekolah, dan Provinsi
+                // Cek rekam jejak. Jika sudah ada, muat sisa poinnya!
                 const pKey = getPlayerKey(loginForm.name, loginForm.school, loginForm.province);
                 const pastRecord = leaderboardData.find(p => p.id === pKey);
 
@@ -438,33 +429,34 @@
                 const recoveredAvatar = pastRecord?.avatar || 'default';
 
                 const initData = { 
-                    name: loginForm.name, 
-                    school: loginForm.school,
-                    province: loginForm.province, 
-                    points: recoveredPoints, 
-                    unlockedLevel: recoveredLevel, 
-                    activeAvatar: recoveredAvatar,
-                    ownedAvatars: ['default', recoveredAvatar],
-                    ownedBatiks: [],
-                    powerups: { bomb: 3, hint: 5 }
+                    name: loginForm.name, school: loginForm.school, province: loginForm.province, 
+                    points: recoveredPoints, unlockedLevel: recoveredLevel, 
+                    activeAvatar: recoveredAvatar, ownedAvatars: ['default', recoveredAvatar],
+                    ownedBatiks: [], powerups: { bomb: 3, hint: 5 },
+                    lastLoginDate: null, lastQuestDate: null, // Paksa checkDailyLogin memunculkan pop-up misi
+                    isLoggedOut: false // Hapus status logout
                 };
                 
                 await saveUserData(initData);
-                
-                setDailyPopup({
-                    show: true,
-                    streak: 1,
-                    bonus: 50,
-                    quests: QUEST_TEMPLATES.map(q => ({ ...q, progress: 0, claimed: false }))
-                });
-
+                // Fungsi checkDailyLogin otomatis berjalan via listener onSnapshot untuk memunculkan pop-up hadiah
                 setView('menu');
             };
 
             const handleLogout = async () => {
-                const auth = getAuth();
-                try { await signOut(auth); } catch (error) { console.error("Logout Error:", error); }
+                // Logical Logout: Tidak memutus sesi auth untuk mencegah loop token
+                if (user && firebaseConfig) {
+                    const db = getFirestore();
+                    const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main');
+                    await setDoc(profileRef, { isLoggedOut: true }); // Timpa status untuk mencegah auto-masuk
+                }
+
+                // Bersihkan semua state memori pemain sebelumnya agar popup & form reset bersih
+                setUserData(null);
+                setDailyPopup({ show: false, streak: 0, bonus: 0, quests: [] });
                 setLoginForm({ name: '', province: '', school: '' });
+                setScore(0);
+                
+                // Langsung arahkan ke halaman login
                 setView('landing');
             };
 
@@ -474,6 +466,7 @@
                     const newPoints = currentPoints - batik.price;
                     const newOwned = [...(userData?.ownedBatiks || []), batik.id];
                     saveUserData({ points: newPoints, ownedBatiks: newOwned });
+                    addPoints(0); // Sync minus
                     alert(`Berhasil membuka Motif ${batik.name}!`);
                 } else { alert("Poin kamu belum cukup untuk membeli motif ini."); }
             };
@@ -484,6 +477,7 @@
                     const newPoints = currentPoints - avatar.price;
                     const newOwned = [...(userData?.ownedAvatars || ['default']), avatar.id];
                     saveUserData({ points: newPoints, ownedAvatars: newOwned, activeAvatar: avatar.id });
+                    addPoints(0); // Sync minus
                     alert(`Berhasil mendapatkan Profil ${avatar.name}!`);
                 } else { alert("Poin kamu belum cukup untuk mendapatkan profil ini."); }
             };
@@ -542,8 +536,8 @@
                         setTimeLeft(prev => {
                             if (prev <= 1) {
                                 clearInterval(timer);
-                                setView('gameover');
                                 updateQuestProgress('play_solo'); 
+                                setView('gameover');
                                 return 0;
                             }
                             return prev - 1;
@@ -561,6 +555,10 @@
                 setScore(0); setCombo(0); setLives(3);
                 setTimeLeft(60 + (selectedLvl * 5)); 
                 setFeverTimer(0);
+                
+                // Amankan Powerups saat mulai main
+                setPowerups(userDataRef.current?.powerups || { bomb: 3, hint: 5 });
+                
                 setGrid(generateGrid(selectedLvl)); setSelectedBlock(null);
                 setView('game');
             };
@@ -568,9 +566,6 @@
             const submitAnswer = (e) => {
                 if (!selectedBlock) return;
                 const isCorrect = parseInt(inputAnswer) === selectedBlock.q.ans;
-                const btnRect = e?.target?.getBoundingClientRect();
-                const x = btnRect ? btnRect.left + btnRect.width / 2 : window.innerWidth / 2;
-                const y = btnRect ? btnRect.top : window.innerHeight / 2;
 
                 if (isCorrect) {
                     setFeedback('correct');
@@ -596,7 +591,7 @@
                     setScore(s => s + earned);
                     setTimeLeft(prev => prev + 3);
                     
-                    setFloatingTexts(prev => [...prev, { id: Date.now()+Math.random(), text: `+${earned} (+3s)`, x, y: y - 50 }]);
+                    setFloatingTexts(prev => [...prev, { id: Date.now()+Math.random(), text: `+${earned} (+3s)`, x: window.innerWidth/2, y: window.innerHeight/2 }]);
 
                     setTimeout(() => {
                         const newGrid = [...grid];
@@ -606,7 +601,7 @@
                         if (newGrid.filter(b => b.active).length === 0) {
                             const bonus = timeLeft * 10 + lives * 50; 
                             const totalLevelScore = score + bonus + earned; 
-                            setScore(totalLevelScore);
+                            setScore(totalLevelScore); // Poin direkap ke state score
                             
                             updateQuestProgress('play_solo'); 
                             
@@ -615,16 +610,14 @@
                             if (nextLevel > currentUnlocked && nextLevel <= ISLANDS.length) {
                                 saveUserData({ unlockedLevel: nextLevel });
                             }
-
-                            // Layar kemenangan (Poin belum dicatat sampai klik KELUAR)
-                            setView('win');
+                            setView('win'); // Layar Menang Muncul -> Tombol Keluar Hadir
                         }
                     }, 500);
 
                 } else {
                     setFeedback('wrong'); setCombo(0); setLives(l => l - 1); setFeverTimer(0);
                     setTimeLeft(prev => Math.max(0, prev - 5));
-                    setFloatingTexts(prev => [...prev, { id: Date.now()+Math.random(), text: `❌ -5 Detik`, x, y: y - 50 }]);
+                    setFloatingTexts(prev => [...prev, { id: Date.now()+Math.random(), text: `❌ -5 Detik`, x: window.innerWidth/2, y: window.innerHeight/2 }]);
                     setTimeout(() => { 
                         setFeedback(null); 
                         setInputAnswer(''); 
@@ -768,7 +761,7 @@
                             <div className="w-full max-w-lg md:max-w-4xl lg:max-w-6xl space-y-6 my-auto py-8">
                                 <div className="flex justify-end w-full">
                                     <button onClick={handleLogout} className="flex items-center gap-2 bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl font-black text-sm md:text-base transition-all shadow-sm">
-                                        <LogOut size={20} /> Ganti Pemain
+                                        <LogOut size={20} /> Keluar Game
                                     </button>
                                 </div>
 
@@ -1010,20 +1003,20 @@
 
                 if (view === 'leaderboard') {
                     return (
-                        <div className="min-h-[100dvh] bg-amber-50 p-4 md:p-8 font-nunito flex flex-col items-center overflow-y-auto">
+                        <div className="h-[100dvh] bg-amber-50 p-4 md:p-8 font-nunito flex flex-col items-center overflow-hidden">
                             <FullscreenButton />
-                            <div className="w-full max-w-lg md:max-w-4xl lg:max-w-5xl bg-white rounded-[2rem] shadow-xl overflow-hidden border-4 border-amber-200 flex flex-col my-auto max-h-none md:max-h-[90dvh]">
-                                <div className="bg-gradient-to-r from-amber-500 to-amber-600 p-6 md:p-8 flex items-center gap-4 text-white relative">
+                            <div className="w-full max-w-lg md:max-w-4xl lg:max-w-5xl bg-white rounded-[2rem] shadow-xl overflow-hidden border-4 border-amber-200 flex flex-col my-auto h-[85vh] md:h-[90vh]">
+                                <div className="bg-gradient-to-r from-amber-500 to-amber-600 p-6 md:p-8 flex items-center gap-4 text-white relative shrink-0">
                                     <button onClick={() => setView('menu')} className="p-3 bg-white/20 hover:bg-white/30 rounded-full backdrop-blur transition-colors"><ArrowLeft size={24}/></button>
                                     <div className="flex-1">
-                                        <h2 className="text-3xl md:text-4xl font-black flex items-center gap-3">
-                                            <Medal fill="currentColor" /> Papan Peringkat Nasional
+                                        <h2 className="text-2xl md:text-4xl font-black flex items-center gap-2 md:gap-3">
+                                            <Medal fill="currentColor" className="w-6 h-6 md:w-8 md:h-8" /> Papan Peringkat
                                         </h2>
-                                        <p className="font-bold text-amber-100 mt-1">Pembatik Terbaik dengan Poin Tertinggi</p>
+                                        <p className="font-bold text-amber-100 mt-1 text-sm md:text-base">Pembatik Terbaik Nasional</p>
                                     </div>
                                 </div>
                                 
-                                <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-slate-50 min-h-[50vh]">
+                                <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-slate-50 custom-scrollbar">
                                     {leaderboardData.length === 0 ? (
                                         <div className="text-center text-gray-500 font-bold py-10">Belum ada data pemain. Jadilah yang pertama!</div>
                                     ) : (
@@ -1217,6 +1210,8 @@
                     const bgClass = isFever ? 'bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500' : 'bg-gray-900';
                     const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
 
+                    const powerupsValue = powerups || { hint: 0, bomb: 0 };
+
                     return (
                         <div className={`min-h-[100dvh] flex flex-col items-center relative overflow-y-auto font-nunito p-4 md:p-8 transition-colors duration-500 ${bgClass}`} style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}>
                             <FullscreenButton />
@@ -1229,7 +1224,7 @@
                             )}
 
                             <div className="w-full max-w-lg md:max-w-2xl lg:max-w-4xl flex flex-col h-full flex-1 gap-2 md:gap-4 lg:gap-6 pb-4 lg:flex-row items-center justify-center">
-                                {/* Header (Tampil ke kiri pada layar besar) */}
+                                {/* Header */}
                                 <div className="w-full lg:w-auto flex flex-col gap-4">
                                     <div className={`p-3 md:p-4 lg:p-6 rounded-[2rem] flex flex-row lg:flex-col justify-between items-center shadow-2xl border-b-8 lg:border-r-8 lg:border-b-0 ${isFever ? 'bg-yellow-900/80 border-yellow-950 backdrop-blur-md' : 'bg-gray-800 border-gray-950'}`}>
                                         <div className="flex lg:flex-col gap-1 md:gap-2 text-red-500">
@@ -1249,7 +1244,7 @@
                                     </div>
                                 </div>
 
-                                {/* Area Bermain (Grid atau Numpad) */}
+                                {/* Area Bermain */}
                                 <div className="flex-1 flex flex-col justify-center items-center relative w-full mt-2 lg:mt-0">
                                     {!selectedBlock ? (
                                         <div className={`shadow-2xl relative border-8 rounded-[2rem] p-3 md:p-4 lg:p-5 ${isFever ? 'bg-orange-600 border-yellow-400' : 'bg-gray-800 border-gray-700'}`}
@@ -1275,11 +1270,11 @@
                                                 </div>
                                             </div>
                                             <div className="flex justify-center gap-4 mb-4 md:mb-6">
-                                                <button onPointerDown={(e) => { e.preventDefault(); if(powerups.hint>0){ setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, hint: p.hint-1}))} }} disabled={powerups.hint <= 0} className="flex items-center gap-2 bg-green-100 text-green-700 px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base lg:text-lg disabled:opacity-50 select-none">
-                                                    <Lightbulb className="w-5 h-5 md:w-6 md:h-6"/> Petunjuk ({powerups.hint})
+                                                <button onPointerDown={(e) => { e.preventDefault(); if(powerupsValue.hint>0){ setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, hint: p.hint-1}))} }} disabled={powerupsValue.hint <= 0} className="flex items-center gap-2 bg-green-100 text-green-700 px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base lg:text-lg disabled:opacity-50 select-none">
+                                                    <Lightbulb className="w-5 h-5 md:w-6 md:h-6"/> Petunjuk ({powerupsValue.hint})
                                                 </button>
-                                                <button onPointerDown={(e) => { e.preventDefault(); if(powerups.bomb>0){ updateQuestProgress('use_bomb'); setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, bomb: p.bomb-1})); setTimeout(()=>submitAnswer(e), 100); } }} disabled={powerups.bomb <= 0} className="flex items-center gap-2 bg-red-100 text-red-700 px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base lg:text-lg disabled:opacity-50 select-none">
-                                                    <Bomb className="w-5 h-5 md:w-6 md:h-6"/> Bom ({powerups.bomb})
+                                                <button onPointerDown={(e) => { e.preventDefault(); if(powerupsValue.bomb>0){ updateQuestProgress('use_bomb'); setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, bomb: p.bomb-1})); setTimeout(()=>submitAnswer(e), 100); } }} disabled={powerupsValue.bomb <= 0} className="flex items-center gap-2 bg-red-100 text-red-700 px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base lg:text-lg disabled:opacity-50 select-none">
+                                                    <Bomb className="w-5 h-5 md:w-6 md:h-6"/> Bom ({powerupsValue.bomb})
                                                 </button>
                                             </div>
                                             {renderNumpad(inputAnswer, setInputAnswer, submitAnswer, false, true)}
@@ -1387,7 +1382,6 @@
 
             return (
                 <React.Fragment>
-                    {/* Global Daily Login & Quest Popup */}
                     {dailyPopup.show && (
                         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
                             <div className="bg-white rounded-[2rem] p-6 md:p-8 max-w-md w-full text-center shadow-2xl transform transition-all animate-bounce-in border-4 border-amber-200">
@@ -1428,8 +1422,6 @@
                             </div>
                         </div>
                     )}
-
-                    {/* View Utama */}
                     {renderView()}
                 </React.Fragment>
             );
