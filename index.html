@@ -716,25 +716,269 @@
             };
 
             const getActiveAvatarIcon = () => {
-                const currentAvatar = AVATARS.find(a => a.id === (userData?.activeAvatar || 'default'));
-                return currentAvatar ? currentAvatar.icon : '👤';
-            };
+            const currentAvatar = AVATARS.find(a => a.id === (userData?.activeAvatar || 'default'));
+            return currentAvatar ? currentAvatar.icon : '👤';
+        };
 
-            const renderView = () => {
-                if (view === 'loading') return <div className="min-h-[100dvh] bg-orange-50 flex items-center justify-center font-nunito"><div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-600"></div></div>;
+        const renderView = () => {
+            if (view === 'loading') return <div className="min-h-[100dvh] bg-orange-50 flex items-center justify-center font-nunito"><div className="animate-spin rounded-full h-16 w-16 md:h-24 md:w-24 border-t-4 border-b-4 border-orange-600"></div></div>;
 
-                if (view === 'landing' || view === 'login') return (
+            if (view === 'landing') {
+                return (
+                    <div className="min-h-[100dvh] flex flex-col items-center justify-end p-6 md:p-10 font-nunito bg-cover bg-center bg-no-repeat relative"
+                         style={{ backgroundImage: `url('https://github.com/user-attachments/assets/049296a9-8c28-4a0a-afa6-e96c62810028')` }}>
+                        <FullscreenButton />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none"></div>
+                        
+                        <button onClick={() => setView('login')} className="relative z-10 mb-12 md:mb-16 xl:mb-24 px-12 md:px-20 xl:px-24 py-4 md:py-6 xl:py-8 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white rounded-full font-black text-3xl md:text-5xl xl:text-7xl shadow-[0_8px_0_rgb(180,83,9),0_15px_40px_rgba(251,191,36,0.6)] active:shadow-[0_0px_0_rgb(180,83,9)] active:translate-y-2 transition-all transform hover:scale-105 animate-bounce flex items-center gap-4 xl:gap-8 border-4 border-orange-300/50">
+                            <Play fill="currentColor" className="w-8 h-8 md:w-12 md:h-12 xl:w-16 xl:h-16" /> PLAY
+                        </button>
+                    </div>
+                );
+            }
+
+            if (view === 'login') return (
+                <div className="min-h-[100dvh] bg-gradient-to-b from-orange-100 to-orange-300 flex flex-col items-center p-4 md:p-8 font-nunito overflow-y-auto">
+                    <FullscreenButton />
+                    <div className="bg-white p-6 md:p-10 lg:p-12 xl:p-16 rounded-[2rem] xl:rounded-[3rem] shadow-2xl w-full max-w-lg md:max-w-2xl xl:max-w-4xl text-center my-auto transition-all animate-bounce-in">
+                        <div className="w-20 h-20 md:w-28 md:h-28 xl:w-36 xl:h-36 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-4 xl:mb-8 border-4 md:border-8 border-orange-200 shadow-inner">
+                            <Zap size={48} className="md:w-16 md:h-16 xl:w-20 xl:h-20" />
+                        </div>
+                        <h1 className="text-3xl md:text-5xl xl:text-6xl font-black text-orange-800 mb-2 xl:mb-4 drop-shadow-sm leading-tight">Petualangan Operasi Hitung di Pulau Batik</h1>
+                        <p className="text-base md:text-xl xl:text-2xl text-orange-600 font-bold mb-8 xl:mb-12">Daftar untuk Menyimpan Progres!</p>
+                        <form onSubmit={handleLogin} className="space-y-4 md:space-y-6 xl:space-y-8 text-left">
+                            <div>
+                                <label className="block text-sm md:text-lg xl:text-2xl font-black text-gray-700 mb-2 flex items-center gap-2"><User size={24} className="xl:w-8 xl:h-8"/> Nama Petualang</label>
+                                <input required type="text" className="w-full px-5 py-4 xl:py-6 text-base md:text-xl xl:text-2xl bg-gray-50 border-2 xl:border-4 border-gray-200 rounded-2xl xl:rounded-3xl focus:border-orange-500 focus:ring-0 outline-none transition-colors font-bold text-gray-800" placeholder="Ketik namamu..." value={loginForm.name} onChange={e => setLoginForm({...loginForm, name: e.target.value})} />
+                            </div>
+                            <div>
+                                <label className="block text-sm md:text-lg xl:text-2xl font-black text-gray-700 mb-2 flex items-center gap-2"><School size={24} className="xl:w-8 xl:h-8"/> Nama Sekolah</label>
+                                <input required type="text" className="w-full px-5 py-4 xl:py-6 text-base md:text-xl xl:text-2xl bg-gray-50 border-2 xl:border-4 border-gray-200 rounded-2xl xl:rounded-3xl focus:border-orange-500 focus:ring-0 outline-none transition-colors font-bold text-gray-800" placeholder="Misal: SDN Nusantara 1" value={loginForm.school} onChange={e => setLoginForm({...loginForm, school: e.target.value})} />
+                            </div>
+                            <div>
+                                <label className="block text-sm md:text-lg xl:text-2xl font-black text-gray-700 mb-2 flex items-center gap-2"><MapPin size={24} className="xl:w-8 xl:h-8"/> Asal Provinsi</label>
+                                <input required type="text" className="w-full px-5 py-4 xl:py-6 text-base md:text-xl xl:text-2xl bg-gray-50 border-2 xl:border-4 border-gray-200 rounded-2xl xl:rounded-3xl focus:border-orange-500 focus:ring-0 outline-none transition-colors font-bold text-gray-800" placeholder="Misal: Jawa Tengah" value={loginForm.province} onChange={e => setLoginForm({...loginForm, province: e.target.value})} />
+                            </div>
+                            <button type="submit" className="w-full mt-6 xl:mt-10 bg-orange-500 hover:bg-orange-600 text-white py-5 xl:py-8 rounded-2xl xl:rounded-3xl font-black text-xl md:text-2xl xl:text-4xl shadow-[0_6px_0_rgb(194,65,12)] xl:shadow-[0_10px_0_rgb(194,65,12)] active:shadow-[0_0px_0_rgb(194,65,12)] active:translate-y-1 xl:active:translate-y-2 transition-all uppercase tracking-wider">
+                                Selanjutnya
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            );
+
+            if (view === 'menu') {
+                const rank = RANKS.slice().reverse().find(r => (userData?.points || 0) >= r.min) || RANKS[0];
+                return (
+                    <div className="min-h-[100dvh] bg-gray-50 p-4 md:p-8 xl:p-12 font-nunito flex flex-col items-center overflow-y-auto">
+                        <FullscreenButton />
+                        <div className="w-full max-w-lg md:max-w-4xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[1400px] space-y-6 md:space-y-8 xl:space-y-10 my-auto py-8">
+                            <div className="flex justify-end w-full">
+                                <button onClick={handleLogout} className="flex items-center gap-2 bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 md:px-6 md:py-4 xl:px-8 xl:py-4 rounded-xl md:rounded-2xl xl:rounded-3xl font-black text-sm md:text-lg xl:text-2xl transition-all shadow-sm">
+                                    <LogOut className="w-5 h-5 md:w-6 md:h-6 xl:w-8 xl:h-8" /> Keluar Game
+                                </button>
+                            </div>
+
+                            <div className="bg-white rounded-[2rem] xl:rounded-[3rem] p-6 md:p-10 xl:p-14 shadow-sm border xl:border-4 border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6 xl:gap-10 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-48 h-48 xl:w-72 xl:h-72 bg-orange-100 rounded-bl-full -z-10 opacity-50"></div>
+                                <div className="text-5xl md:text-7xl xl:text-8xl bg-gray-100 w-24 h-24 md:w-32 md:h-32 xl:w-40 xl:h-40 flex items-center justify-center rounded-[2rem] xl:rounded-[3rem] shadow-inner border-4 xl:border-8 border-gray-200 shrink-0">
+                                    {getActiveAvatarIcon()}
+                                </div>
+                                <div className="text-center md:text-left flex-1">
+                                    <h2 className="text-3xl md:text-5xl xl:text-6xl font-black text-gray-800 mb-2 xl:mb-4">{userData?.name}</h2>
+                                    <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4 xl:gap-6 text-sm md:text-lg xl:text-2xl font-bold text-gray-500 justify-center md:justify-start">
+                                        <span className="flex items-center gap-2"><School className="w-5 h-5 xl:w-8 xl:h-8"/> {userData?.school}</span>
+                                        <span className="hidden md:inline">•</span>
+                                        <span className="flex items-center gap-2"><MapPin className="w-5 h-5 xl:w-8 xl:h-8"/> {userData?.province}</span>
+                                    </div>
+                                    <div className={`mt-4 xl:mt-8 inline-flex items-center gap-2 xl:gap-4 px-4 py-2 md:px-6 md:py-3 xl:px-8 xl:py-4 rounded-xl xl:rounded-2xl ${rank.bg} ${rank.color} font-black text-sm md:text-lg xl:text-2xl uppercase tracking-wide`}>
+                                        <Trophy className="w-5 h-5 xl:w-8 xl:h-8" /> {rank.title}
+                                    </div>
+                                </div>
+                                <div className="text-center md:text-right bg-orange-50 p-4 md:p-8 xl:p-10 rounded-2xl xl:rounded-3xl border-2 xl:border-4 border-orange-100 min-w-[200px] xl:min-w-[300px]">
+                                    <p className="text-sm md:text-lg xl:text-2xl font-bold text-orange-400 uppercase tracking-widest mb-1 xl:mb-2">Total Poin</p>
+                                    <p className="text-4xl md:text-6xl xl:text-7xl font-black text-orange-500">{userData?.points?.toLocaleString() || 0}</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 xl:gap-8">
+                                <button onClick={() => setView('map')} className="col-span-2 bg-gradient-to-br from-emerald-500 to-green-600 p-6 md:p-10 xl:p-14 rounded-[2rem] xl:rounded-[3rem] text-white shadow-[0_8px_0_rgb(21,128,61)] xl:shadow-[0_12px_0_rgb(21,128,61)] active:translate-y-2 xl:active:translate-y-4 transition-all flex flex-col items-center md:items-start text-left relative overflow-hidden group">
+                                    <div className="absolute -right-10 -bottom-10 opacity-20 group-hover:scale-110 transition-transform"><MapIcon size={200} className="xl:w-[300px] xl:h-[300px]"/></div>
+                                    <div className="w-16 h-16 md:w-24 md:h-24 xl:w-32 xl:h-32 bg-white/20 rounded-2xl xl:rounded-3xl flex items-center justify-center mb-4 xl:mb-8 backdrop-blur-sm"><Play fill="currentColor" className="w-8 h-8 xl:w-16 xl:h-16" /></div>
+                                    <h3 className="text-3xl md:text-4xl xl:text-6xl font-black mb-1 xl:mb-3">Petualangan</h3>
+                                    <p className="font-bold text-green-100 text-sm md:text-lg xl:text-2xl">Jelajahi Peta Nusantara!</p>
+                                </button>
+
+                                <button onClick={() => setView('multiplayer-setup')} className="col-span-2 bg-gradient-to-br from-blue-500 to-blue-700 p-6 md:p-10 xl:p-14 rounded-[2rem] xl:rounded-[3rem] text-white shadow-[0_8px_0_rgb(29,78,216)] xl:shadow-[0_12px_0_rgb(29,78,216)] active:translate-y-2 xl:active:translate-y-4 transition-all flex flex-col items-center md:items-start text-left relative overflow-hidden group">
+                                    <div className="absolute -right-10 -bottom-10 opacity-20 group-hover:scale-110 transition-transform"><Swords size={200} className="xl:w-[300px] xl:h-[300px]"/></div>
+                                    <div className="w-16 h-16 md:w-24 md:h-24 xl:w-32 xl:h-32 bg-white/20 rounded-2xl xl:rounded-3xl flex items-center justify-center mb-4 xl:mb-8 backdrop-blur-sm"><Users fill="currentColor" className="w-8 h-8 xl:w-16 xl:h-16" /></div>
+                                    <h3 className="text-3xl md:text-4xl xl:text-6xl font-black mb-1 xl:mb-3">Mode Duel</h3>
+                                    <p className="font-bold text-blue-100 text-sm md:text-lg xl:text-2xl">Tantang Temanmu (1 vs 1)</p>
+                                </button>
+
+                                <button onClick={() => setView('avatar-shop')} className="col-span-1 md:col-span-2 bg-white border-4 xl:border-8 border-pink-200 p-4 md:p-8 xl:p-10 rounded-[2rem] xl:rounded-[3rem] text-pink-600 shadow-[0_6px_0_rgb(24bc,191,214)] active:translate-y-1 xl:active:translate-y-2 transition-all flex flex-col md:flex-row items-center justify-center gap-4 xl:gap-8 hover:border-pink-400">
+                                    <div className="text-4xl md:text-5xl xl:text-7xl">🦊</div>
+                                    <div className="text-center md:text-left">
+                                        <h3 className="text-xl md:text-3xl xl:text-4xl font-black">Toko Avatar</h3>
+                                        <p className="text-xs md:text-base xl:text-xl font-bold text-pink-400">Beli profil lucu</p>
+                                    </div>
+                                </button>
+
+                                <button onClick={() => setView('quests')} className="col-span-1 md:col-span-2 bg-white border-4 xl:border-8 border-teal-200 p-4 md:p-8 xl:p-10 rounded-[2rem] xl:rounded-[3rem] text-teal-600 shadow-[0_6px_0_rgb(153,246,228)] active:translate-y-1 xl:active:translate-y-2 transition-all flex flex-col md:flex-row items-center justify-center gap-4 xl:gap-8 hover:border-teal-400 relative">
+                                    {userData?.quests?.some(q => q.progress >= q.target && !q.claimed) && <div className="absolute -top-2 -right-2 w-6 h-6 xl:w-10 xl:h-10 bg-red-500 rounded-full border-2 xl:border-4 border-white animate-bounce"></div>}
+                                    <div className="text-4xl md:text-5xl xl:text-7xl">📜</div>
+                                    <div className="text-center md:text-left">
+                                        <h3 className="text-xl md:text-3xl xl:text-4xl font-black">Misi Harian</h3>
+                                        <p className="text-xs md:text-base xl:text-xl font-bold text-teal-400">Klaim hadiah</p>
+                                    </div>
+                                </button>
+
+                                <button onClick={() => setView('leaderboard')} className="col-span-2 md:col-span-4 bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 p-6 md:p-10 xl:p-12 rounded-[2rem] xl:rounded-[3rem] text-white shadow-[0_8px_0_rgb(180,83,9)] xl:shadow-[0_12px_0_rgb(180,83,9)] active:translate-y-2 xl:active:translate-y-4 transition-all flex items-center justify-between relative overflow-hidden group">
+                                    <div className="absolute right-10 top-1/2 -translate-y-1/2 opacity-30 group-hover:scale-125 transition-transform"><CantingEmas size={200} className="xl:w-[300px] xl:h-[300px]" /></div>
+                                    <div className="text-left relative z-10 flex flex-col md:flex-row items-center md:items-start gap-4 xl:gap-8 text-center md:text-left">
+                                        <div className="w-16 h-16 md:w-24 md:h-24 xl:w-32 xl:h-32 bg-white/20 rounded-2xl xl:rounded-3xl flex items-center justify-center backdrop-blur-sm"><Medal fill="currentColor" className="w-8 h-8 xl:w-16 xl:h-16" /></div>
+                                        <div>
+                                            <h3 className="text-3xl md:text-5xl xl:text-6xl font-black mb-1 xl:mb-3 drop-shadow-md">Pembatik Terbaik</h3>
+                                            <p className="font-bold text-amber-100 text-base md:text-xl xl:text-2xl">Lihat Papan Peringkat Nasional</p>
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'game') {
+                const isFever = feverTimer > 0;
+                const bgClass = isFever ? 'bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500' : 'bg-gray-900';
+                const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
+                const powerupsValue = powerups || { hint: 0, bomb: 0 };
+
+                return (
+                    <div className={`fixed inset-0 flex flex-col items-center overflow-hidden font-nunito p-4 md:p-8 xl:p-12 transition-colors duration-500 ${bgClass}`} style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}>
+                        <FullscreenButton />
+                        {floatingTexts.map(ft => ( <FloatingText key={ft.id} text={ft.text} x={ft.x} y={ft.y} onComplete={() => setFloatingTexts(prev => prev.filter(t => t.id !== ft.id))} /> ))}
+
+                        {isFever && (
+                            <div className="w-full max-w-lg md:max-w-4xl xl:max-w-7xl bg-black/30 rounded-full h-3 md:h-4 xl:h-6 mb-4 md:mb-6 overflow-hidden backdrop-blur-sm border border-yellow-300 shadow-[0_0_20px_rgba(250,204,21,0.6)] shrink-0">
+                                <div className="h-full bg-yellow-400 shadow-[0_0_10px_#fff]" style={{ width: `${(feverTimer/10)*100}%`, transition: 'width 1s linear' }}></div>
+                            </div>
+                        )}
+
+                        <div className="w-full max-w-lg md:max-w-4xl lg:max-w-6xl xl:max-w-7xl flex flex-col lg:flex-row items-center lg:items-stretch justify-center h-full min-h-0 gap-4 md:gap-6 xl:gap-12 pb-4">
+                            
+                            {/* Panel Kiri: Header & Status */}
+                            <div className="w-full lg:w-[30%] flex flex-col justify-center gap-4 shrink-0">
+                                <div className={`p-4 md:p-6 lg:p-8 xl:p-10 rounded-3xl xl:rounded-[3rem] flex flex-row lg:flex-col justify-between items-center shadow-2xl border-b-8 lg:border-b-8 lg:border-r-0 ${isFever ? 'bg-yellow-900/80 border-yellow-950 backdrop-blur-md' : 'bg-gray-800 border-gray-950'}`}>
+                                    <div className="flex lg:flex-col lg:gap-4 gap-1 md:gap-2 text-red-500">
+                                        <div className="flex gap-1 md:gap-2">
+                                            {[...Array(3)].map((_, i) => <Heart key={i} fill={i < lives ? "currentColor" : "none"} className={`w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 xl:w-14 xl:h-14 ${i >= lives ? "text-white/20" : ""}`} />)}
+                                        </div>
+                                    </div>
+                                    <div className="text-center lg:my-8 xl:my-12">
+                                        <div className={`text-xs md:text-sm lg:text-lg xl:text-xl font-bold uppercase tracking-widest flex items-center justify-center gap-2 ${isFever ? 'text-yellow-200' : 'text-gray-400'}`}>
+                                            <span>{currentIsland.name}</span>
+                                        </div>
+                                        <div className="text-4xl md:text-5xl lg:text-7xl xl:text-8xl font-black text-white">{score}</div>
+                                        {isFever && <div className="text-[10px] md:text-xs xl:text-base font-black text-yellow-300 animate-pulse mt-2">🔥 x3 POINT 🔥</div>}
+                                    </div>
+                                    <div className={`px-4 py-2 md:px-6 md:py-3 xl:px-8 xl:py-4 rounded-xl xl:rounded-2xl flex items-center justify-center w-full gap-2 border-b-4 ${isFever ? 'bg-red-600 border-red-800' : 'bg-gray-700 border-gray-900'}`}>
+                                        {isFever ? <Flame className="w-5 h-5 md:w-8 md:h-8 xl:w-10 xl:h-10 text-yellow-300 fill-yellow-300 animate-bounce"/> : <Clock className={`w-5 h-5 md:w-8 md:h-8 xl:w-10 xl:h-10 ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-yellow-400'}`}/>}
+                                        <span className={`font-black text-xl md:text-3xl xl:text-4xl ${timeLeft <= 10 && !isFever ? 'text-red-500' : 'text-white'}`}>{timeLeft}s</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Panel Tengah: Grid Permainan (Disesuaikan agar muat di HP) */}
+                            <div className="flex-1 flex items-center justify-center w-full min-h-0 relative">
+                                {!selectedBlock ? (
+                                    <div className={`shadow-2xl relative border-4 md:border-8 rounded-3xl md:rounded-[2rem] xl:rounded-[3rem] p-2 md:p-4 lg:p-6 ${isFever ? 'bg-orange-600 border-yellow-400' : 'bg-gray-800 border-gray-700'}`}
+                                         style={{ width: '100%', maxWidth: 'min(100%, 45vh)', lg: {maxWidth: 'min(100%, 65vh)'}, aspectRatio: '1/1' }}>
+                                        <div className="absolute inset-2 md:inset-4 lg:inset-6 rounded-2xl xl:rounded-[2rem] bg-cover bg-center opacity-80" style={{ backgroundImage: `url(${activeBatik.bgImage})`}}></div>
+                                        <div className="grid grid-cols-4 grid-rows-4 gap-1 md:gap-2 xl:gap-4 w-full h-full relative z-10">
+                                            {grid.map(b => (
+                                                <button key={b.id} onPointerDown={(e) => { e.preventDefault(); if(b.active) { setSelectedBlock(b); setInputAnswer(''); setFeedback(null); }}}
+                                                    className={`rounded-lg xl:rounded-2xl transition-all transform flex items-center justify-center font-bold text-xl md:text-3xl lg:text-4xl xl:text-5xl shadow-[0_4px_0_rgba(0,0,0,0.3)] md:shadow-[0_6px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-1 select-none
+                                                        ${!b.active ? 'opacity-0 pointer-events-none scale-50' : 'opacity-100 scale-100'}
+                                                        ${b.isSpecial ? 'bg-gradient-to-br from-yellow-400 to-amber-500' : (isFever ? 'bg-gradient-to-br from-red-500 to-orange-500' : 'bg-gradient-to-br from-blue-400 to-blue-600')}`}>
+                                                    {b.active && (b.isSpecial ? <span className="text-white drop-shadow-md">★</span> : <span className="text-white/30 text-lg md:text-2xl xl:text-4xl">?</span>)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-white rounded-3xl md:rounded-[2rem] xl:rounded-[3rem] p-4 md:p-8 xl:p-12 shadow-2xl w-full max-w-sm md:max-w-xl xl:max-w-2xl border-4 xl:border-8 border-gray-200">
+                                        <div className="flex justify-between items-center mb-4 md:mb-8">
+                                            <button onPointerDown={(e) => { e.preventDefault(); setSelectedBlock(null); }} className="text-gray-400 bg-gray-100 p-2 md:p-4 xl:p-6 rounded-full hover:bg-gray-200 select-none"><ArrowLeft className="w-6 h-6 md:w-8 md:h-8 xl:w-10 xl:h-10"/></button>
+                                            <div className="text-3xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-gray-800 tracking-wider text-center flex-1">
+                                                {selectedBlock.q.text} = <span className={`inline-block min-w-[60px] md:min-w-[100px] xl:min-w-[150px] text-center border-b-4 md:border-b-8 pb-1 md:pb-2 ${feedback === 'wrong' ? 'border-red-500 text-red-500' : 'border-blue-500 text-blue-600'}`}>{inputAnswer || '?'}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-center gap-2 md:gap-4 mb-4 md:mb-8">
+                                            <button onPointerDown={(e) => { e.preventDefault(); if(powerupsValue.hint>0){ setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, hint: p.hint-1}))} }} disabled={powerupsValue.hint <= 0} className="flex items-center gap-1 md:gap-2 bg-green-100 text-green-700 px-3 md:px-6 py-2 md:py-3 xl:py-4 xl:px-8 rounded-full font-bold text-xs md:text-base xl:text-xl disabled:opacity-50 select-none">
+                                                <Lightbulb className="w-4 h-4 md:w-6 md:h-6 xl:w-8 xl:h-8"/> Petunjuk ({powerupsValue.hint})
+                                            </button>
+                                            <button onPointerDown={(e) => { e.preventDefault(); if(powerupsValue.bomb>0){ updateQuestProgress('use_bomb'); setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, bomb: p.bomb-1})); setTimeout(()=>submitAnswer(e), 100); } }} disabled={powerupsValue.bomb <= 0} className="flex items-center gap-1 md:gap-2 bg-red-100 text-red-700 px-3 md:px-6 py-2 md:py-3 xl:py-4 xl:px-8 rounded-full font-bold text-xs md:text-base xl:text-xl disabled:opacity-50 select-none">
+                                                <Bomb className="w-4 h-4 md:w-6 md:h-6 xl:w-8 xl:h-8"/> Bom ({powerupsValue.bomb})
+                                            </button>
+                                        </div>
+                                        {/* Memastikan Numpad selalu ringkas di HP */}
+                                        {renderNumpad(inputAnswer, setInputAnswer, submitAnswer, false, window.innerWidth < 768)}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'gameover' || view === 'win') {
+                const isWin = view === 'win';
+                const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
+                return (
+                    <div className={`min-h-[100dvh] flex flex-col items-center justify-center p-6 md:p-10 font-nunito ${isWin ? 'bg-green-50' : 'bg-red-50'} overflow-y-auto`}>
+                        <div className="bg-white p-8 md:p-12 lg:p-16 xl:p-20 rounded-[3rem] xl:rounded-[4rem] shadow-2xl max-w-sm md:max-w-3xl xl:max-w-4xl w-full text-center border-4 xl:border-8 border-gray-100 my-auto">
+                            <div className="text-8xl md:text-9xl xl:text-[12rem] mb-6 md:mb-10 xl:mb-14">{isWin ? '🏝️' : (timeLeft <= 0 ? '⏰' : '💥')}</div>
+                            <h2 className={`text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black mb-4 xl:mb-8 ${isWin ? 'text-green-600' : 'text-red-600'}`}>
+                                {isWin ? `PULAU ${currentIsland.name.toUpperCase()} SELESAI!` : (timeLeft <= 0 ? 'WAKTU HABIS!' : 'YAH, GAGAL...')}
+                            </h2>
+                            <p className="text-gray-600 font-bold text-lg md:text-xl lg:text-2xl xl:text-3xl mb-8 md:mb-12">
+                                {isWin ? 'Luar biasa! Kamu berhasil menaklukkan tantangan di pulau ini.' : 'Poin akan dicatat saat kamu menekan tombol KELUAR di bawah.'}
+                            </p>
+                            
+                            <div className="bg-gray-50 rounded-[2rem] xl:rounded-[3rem] p-6 md:p-10 xl:p-14 mb-8 md:mb-12 border-2 xl:border-4 border-gray-100">
+                                <p className="text-base md:text-lg lg:text-xl xl:text-2xl font-bold text-gray-400 uppercase tracking-widest mb-2 xl:mb-4">Skor Akhir</p>
+                                <p className="text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-black text-orange-500">{score}</p>
+                            </div>
+
+                            <div className="flex flex-col md:flex-row gap-4 xl:gap-8">
+                                {!isWin && (
+                                    <button onClick={handleSaveAndReplay} className="flex-1 bg-orange-500 text-white py-5 md:py-6 xl:py-8 rounded-2xl md:rounded-[2rem] xl:rounded-[3rem] font-black text-xl md:text-2xl xl:text-3xl shadow-[0_8px_0_rgb(194,65,12)] xl:shadow-[0_12px_0_rgb(194,65,12)] hover:bg-orange-600 active:shadow-[0_0px_0_rgb(194,65,12)] active:translate-y-2 xl:active:translate-y-4 transition-all">
+                                        ULANGI LEVEL
+                                    </button>
+                                )}
+                                <button onClick={handleSaveAndExit} className="flex-1 bg-gray-800 text-white py-5 md:py-6 xl:py-8 rounded-2xl md:rounded-[2rem] xl:rounded-[3rem] font-black text-xl md:text-2xl xl:text-3xl shadow-[0_8px_0_rgb(17,24,39)] xl:shadow-[0_12px_0_rgb(17,24,39)] hover:bg-gray-900 active:shadow-[0_0px_0_rgb(17,24,39)] active:translate-y-2 xl:active:translate-y-4 transition-all">
+                                    KELUAR & SIMPAN
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+                if (view === 'login') return (
                     <div className="min-h-[100dvh] bg-gradient-to-b from-orange-100 to-orange-300 flex flex-col items-center p-4 font-nunito overflow-y-auto">
                         <FullscreenButton />
-                        <div className="bg-white p-6 md:p-8 lg:p-10 rounded-[2rem] shadow-2xl w-full max-w-lg md:max-w-xl text-center my-auto transition-all">
+                        <div className="bg-white p-6 md:p-8 lg:p-10 rounded-[2rem] shadow-2xl w-full max-w-lg md:max-w-xl text-center my-auto transition-all animate-bounce-in">
                             <div className="w-20 h-20 md:w-24 md:h-24 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-4 border-4 md:border-8 border-orange-200 shadow-inner">
                                 <Zap size={40} className="md:w-14 md:h-14" />
                             </div>
-                            <h1 className="text-4xl md:text-5xl font-black text-orange-800 mb-2 drop-shadow-sm">Batik Matika</h1>
+                            <h1 className="text-4xl md:text-5xl font-black text-orange-800 mb-2 drop-shadow-sm leading-tight">Petualangan Operasi Hitung di Pulau Batik</h1>
                             <p className="text-lg md:text-xl text-orange-600 font-bold mb-8">Daftar untuk Menyimpan Progres!</p>
                             <form onSubmit={handleLogin} className="space-y-4 md:space-y-5 text-left">
                                 <div>
-                                    <label className="block text-sm md:text-base font-black text-gray-700 mb-2 flex items-center gap-2"><User size={18}/> Nama Pembatik</label>
+                                    <label className="block text-sm md:text-base font-black text-gray-700 mb-2 flex items-center gap-2"><User size={18}/> Nama Petualang</label>
                                     <input required type="text" className="w-full px-5 py-3 md:py-4 text-base md:text-lg bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-orange-500 focus:ring-0 outline-none transition-colors font-bold text-gray-800" placeholder="Ketik namamu..." value={loginForm.name} onChange={e => setLoginForm({...loginForm, name: e.target.value})} />
                                 </div>
                                 <div>
@@ -746,7 +990,7 @@
                                     <input required type="text" className="w-full px-5 py-3 md:py-4 text-base md:text-lg bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-orange-500 focus:ring-0 outline-none transition-colors font-bold text-gray-800" placeholder="Misal: Jawa Tengah" value={loginForm.province} onChange={e => setLoginForm({...loginForm, province: e.target.value})} />
                                 </div>
                                 <button type="submit" className="w-full mt-4 bg-orange-500 hover:bg-orange-600 text-white py-4 md:py-5 rounded-2xl font-black text-xl md:text-2xl shadow-[0_6px_0_rgb(194,65,12)] active:shadow-[0_0px_0_rgb(194,65,12)] active:translate-y-1 transition-all uppercase tracking-wider">
-                                    Masuk Kelas!
+                                    Selanjutnya
                                 </button>
                             </form>
                         </div>
