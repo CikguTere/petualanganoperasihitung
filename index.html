@@ -137,6 +137,14 @@
         // 2. HELPER COMPONENTS & ANIMATIONS
         // ==========================================
 
+        // Fungsi Pembuat Kunci Akun Deterministik (Pencegah Duplikat Data)
+        const getPlayerKey = (name, school, province) => {
+            const safeName = (name || 'pemain').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const safeSchool = (school || '-').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const safeProv = (province || '-').toLowerCase().replace(/[^a-z0-9]/g, '');
+            return `${safeName}_${safeSchool}_${safeProv}`;
+        };
+
         const FloatingText = ({ text, x, y, onComplete }) => {
             useEffect(() => {
                 const timer = setTimeout(onComplete, 1000);
@@ -211,7 +219,7 @@
 
             // --- Firebase Init ---
             const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'batik-matika-v8';
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'batik-matika-v9';
             
             useEffect(() => {
                 if (!firebaseConfig) { setView('landing'); return; }
@@ -243,11 +251,12 @@
                     if (snap.exists()) {
                         const data = snap.data();
                         setUserData(data);
-                        checkDailyLogin(data); // Cek Login Harian & Quest
+                        checkDailyLogin(data);
                         setView(v => (v === 'loading' || v === 'login' || v === 'landing') ? 'menu' : v);
                     } else { setView('login'); }
                 });
 
+                // Sinkronisasi Leaderboard
                 const lbRef = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
                 const unsubLb = onSnapshot(lbRef, (snap) => {
                     const rawData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -359,18 +368,25 @@
                     const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main');
                     await setDoc(profileRef, { ...newData, updatedAt: serverTimestamp() }, { merge: true });
 
-                    if (newData.name || newData.school || newData.province || newData.points !== undefined || newData.activeAvatar) {
-                        const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', user.uid);
+                    // Sinkron ke Leaderboard menggunakan Kunci Unik Deterministik (Identitas Pemain)
+                    const mergedData = { ...(userDataRef.current || {}), ...newData };
+                    
+                    if (mergedData.name || mergedData.school || mergedData.province) {
+                        const pKey = getPlayerKey(mergedData.name, mergedData.school, mergedData.province);
+                        const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', pKey);
+                        
                         const lbUpdate = {
-                            name: newData.name || userDataRef.current?.name || 'Pemain',
-                            school: newData.school || userDataRef.current?.school || '-',
-                            province: newData.province || userDataRef.current?.province || '-',
-                            unlockedLevel: newData.unlockedLevel || userDataRef.current?.unlockedLevel || 1,
-                            avatar: newData.activeAvatar || userDataRef.current?.activeAvatar || 'default',
+                            name: mergedData.name || 'Pemain',
+                            school: mergedData.school || '-',
+                            province: mergedData.province || '-',
+                            unlockedLevel: mergedData.unlockedLevel || 1,
+                            avatar: mergedData.activeAvatar || 'default',
                             updatedAt: serverTimestamp()
                         };
                         
-                        if (newData.points !== undefined) lbUpdate.points = newData.points;
+                        // Timpa nilai poin absolut di papan peringkat agar selalu sama dengan poin lokal
+                        if (mergedData.points !== undefined) lbUpdate.points = mergedData.points;
+                        
                         await setDoc(publicRef, lbUpdate, { merge: true });
                     }
                 } catch (e) { console.error("Save Data Error", e); }
@@ -378,23 +394,33 @@
 
             const recordGamePoints = async (earnedPoints) => {
                 if (earnedPoints <= 0) return;
-                setUserData(prev => ({ ...prev, points: (prev?.points || 0) + earnedPoints }));
+                
+                const currentData = userDataRef.current;
+                const newTotalPoints = (currentData?.points || 0) + earnedPoints;
+
+                // Update UI lokal seketika
+                setUserData(prev => ({ ...prev, points: newTotalPoints }));
 
                 if (user && firebaseConfig) {
                     const db = getFirestore();
                     const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main');
-                    const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', user.uid);
                     
-                    const currentData = userDataRef.current;
+                    const pName = currentData?.name || loginForm.name || 'Pemain';
+                    const pSchool = currentData?.school || loginForm.school || '-';
+                    const pProv = currentData?.province || loginForm.province || '-';
+                    const pKey = getPlayerKey(pName, pSchool, pProv);
+                    
+                    const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', pKey);
+                    
                     try {
-                        await setDoc(profileRef, { points: increment(earnedPoints), updatedAt: serverTimestamp() }, { merge: true });
+                        await setDoc(profileRef, { points: newTotalPoints, updatedAt: serverTimestamp() }, { merge: true });
                         await setDoc(publicRef, {
-                            name: currentData?.name || loginForm.name || 'Pemain',
-                            school: currentData?.school || loginForm.school || '-',
-                            province: currentData?.province || loginForm.province || '-',
+                            name: pName,
+                            school: pSchool,
+                            province: pProv,
                             unlockedLevel: currentData?.unlockedLevel || 1,
                             avatar: currentData?.activeAvatar || 'default',
-                            points: increment(earnedPoints),
+                            points: newTotalPoints,
                             updatedAt: serverTimestamp()
                         }, { merge: true });
                     } catch (e) { console.error("Sync Error", e); }
@@ -408,12 +434,11 @@
                     return;
                 }
 
-                const pastRecord = leaderboardData.find(p => 
-                    p.name?.toLowerCase().trim() === loginForm.name.toLowerCase().trim() &&
-                    p.school?.toLowerCase().trim() === loginForm.school.toLowerCase().trim() &&
-                    p.province?.toLowerCase().trim() === loginForm.province.toLowerCase().trim()
-                );
+                // Cek rekam jejak di Leaderboard menggunakan kombinasi Nama, Sekolah, dan Provinsi
+                const pKey = getPlayerKey(loginForm.name, loginForm.school, loginForm.province);
+                const pastRecord = leaderboardData.find(p => p.id === pKey);
 
+                // Kembalikan sisa poin mereka jika ditemukan!
                 const recoveredPoints = pastRecord?.points || 0;
                 const recoveredLevel = pastRecord?.unlockedLevel || 1;
                 const recoveredAvatar = pastRecord?.avatar || 'default';
@@ -560,7 +585,8 @@
                     setFeedback('correct');
                     const newCombo = combo + 1; 
                     setCombo(newCombo);
-                    updateQuestProgress('answer_correct'); 
+                    
+                    updateQuestProgress('answer_correct'); // Misi Harian Trigger
                     
                     let isTriggeringFever = false;
                     let currentFever = feverTimer;
@@ -578,6 +604,7 @@
                     
                     setScore(s => s + earned);
                     setTimeLeft(prev => prev + 3);
+                    
                     setFloatingTexts(prev => [...prev, { id: Date.now()+Math.random(), text: `+${earned} (+3s)`, x, y: y - 50 }]);
 
                     setTimeout(() => {
@@ -589,6 +616,7 @@
                             const bonus = timeLeft * 10 + lives * 50; 
                             const totalLevelScore = score + bonus + earned; 
                             setScore(totalLevelScore);
+                            
                             recordGamePoints(totalLevelScore);
                             updateQuestProgress('play_solo'); 
                             
@@ -619,6 +647,7 @@
                 }
             };
 
+            // --- Multiplayer Handlers ---
             const startMultiplayer = () => {
                 setMpState({
                     p1: { score: 0, lives: 3, grid: generateGrid(mpSetup.level), activeBlock: null, input: '', feedback: null },
@@ -680,6 +709,7 @@
                 }
             };
 
+            // --- Renderers ---
             const FullscreenButton = () => (
                 <button onClick={toggleFullscreen} className="fixed top-4 right-4 z-50 p-3 bg-white/20 backdrop-blur border border-white/30 text-white rounded-full shadow-lg hover:bg-white/40 transition-all">
                     {isFullscreen ? <Minimize size={24} /> : <Maximize size={24} />}
@@ -691,9 +721,9 @@
                     if (e) e.preventDefault();
                     if (inputValue.length < 4) setInput(inputValue + n); 
                 };
-                const btnClass = `bg-gray-100/90 backdrop-blur hover:bg-gray-200 text-gray-800 font-black ${isCompact ? 'text-lg md:text-xl lg:text-3xl py-2 md:py-3 lg:py-3' : 'text-lg md:text-2xl lg:text-3xl py-2 md:py-4 lg:py-5'} rounded-xl md:rounded-2xl shadow-sm border-b-4 border-gray-300 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center min-h-[44px] md:min-h-[50px] select-none`;
-                const delClass = `bg-red-100 hover:bg-red-200 text-red-600 font-black ${isCompact ? 'text-sm md:text-base lg:text-xl py-2 md:py-3 lg:py-3' : 'text-base md:text-xl py-2 md:py-4 lg:py-5'} rounded-xl md:rounded-2xl shadow-sm border-b-4 border-red-300 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center min-h-[44px] md:min-h-[50px] select-none`;
-                const goClass = `font-black ${isCompact ? 'text-lg md:text-xl lg:text-3xl py-2 md:py-3 lg:py-3' : 'text-lg md:text-2xl py-2 md:py-4 lg:py-5'} rounded-xl md:rounded-2xl shadow-sm border-b-4 transition-all flex items-center justify-center min-h-[44px] md:min-h-[50px] select-none ${inputValue ? 'bg-orange-500 hover:bg-orange-600 text-white border-orange-700 active:border-b-0 active:translate-y-1' : 'bg-gray-300 text-gray-500 border-gray-400 pointer-events-none'}`;
+                const btnClass = `bg-gray-100/90 backdrop-blur hover:bg-gray-200 text-gray-800 font-black ${isCompact ? 'text-base md:text-xl lg:text-2xl py-2 md:py-3 lg:py-4' : 'text-lg md:text-2xl lg:text-3xl py-2 md:py-4 lg:py-5'} rounded-xl md:rounded-2xl shadow-sm border-b-4 border-gray-300 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center min-h-[38px] md:min-h-[56px] select-none`;
+                const delClass = `bg-red-100 hover:bg-red-200 text-red-600 font-black ${isCompact ? 'text-sm md:text-base lg:text-lg py-2 md:py-3 lg:py-4' : 'text-base md:text-xl py-2 md:py-4 lg:py-5'} rounded-xl md:rounded-2xl shadow-sm border-b-4 border-red-300 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center min-h-[38px] md:min-h-[56px] select-none`;
+                const goClass = `font-black ${isCompact ? 'text-base md:text-xl lg:text-2xl py-2 md:py-3 lg:py-4' : 'text-lg md:text-2xl py-2 md:py-4 lg:py-5'} rounded-xl md:rounded-2xl shadow-sm border-b-4 transition-all flex items-center justify-center min-h-[38px] md:min-h-[56px] select-none ${inputValue ? 'bg-orange-500 hover:bg-orange-600 text-white border-orange-700 active:border-b-0 active:translate-y-1' : 'bg-gray-300 text-gray-500 border-gray-400 pointer-events-none'}`;
 
                 return (
                     <div className={`grid grid-cols-3 gap-1 md:gap-2 w-full max-w-sm mx-auto ${isP2 ? 'dir-rtl' : ''}`}>
