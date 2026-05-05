@@ -69,7 +69,7 @@
         import { createRoot } from 'react-dom/client';
         import { initializeApp } from 'firebase/app';
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, signOut } from 'firebase/auth';
-        import { getFirestore, collection, doc, setDoc, onSnapshot, serverTimestamp, increment } from 'firebase/firestore';
+        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, serverTimestamp, increment } from 'firebase/firestore';
         import { Play, Users, Trophy, ArrowLeft, Heart, Zap, Lock, School, Clock, Lightbulb, Bomb, Maximize, Minimize, Swords, User, MapPin, Medal, Flame, Map as MapIcon, ChevronRight, CalendarCheck, CheckCircle2, LogOut } from 'lucide-react';
 
         // ==========================================
@@ -306,6 +306,33 @@
                 } catch (e) { console.error("Point Sync Error", e); }
             };
 
+            // Fungsi Khusus Mengurangi Poin Saat Belanja (Sinkronisasi Aman)
+            const deductPointsSync = async (cost, additionalData) => {
+                if (!user || !firebaseConfig) return;
+                const db = getFirestore();
+                
+                const currentData = userDataRef.current || {};
+                const newTotalPoints = Math.max(0, (currentData.points || 0) - cost);
+
+                setUserData(prev => ({ ...prev, points: newTotalPoints, ...additionalData }));
+
+                const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main');
+                const pName = currentData.name || loginForm.name || 'Anonim';
+                const pSchool = currentData.school || loginForm.school || '-';
+                const pProv = currentData.province || loginForm.province || '-';
+                const pKey = getPlayerKey(pName, pSchool, pProv);
+                const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', pKey);
+
+                try {
+                    // Update Profil
+                    await setDoc(profileRef, { points: newTotalPoints, ...additionalData, updatedAt: serverTimestamp() }, { merge: true });
+                    // Paksa samakan Poin Leaderboard & Avatar Baru (jika ada)
+                    const lbUpdates = { points: newTotalPoints, updatedAt: serverTimestamp() };
+                    if (additionalData.activeAvatar) lbUpdates.avatar = additionalData.activeAvatar;
+                    await setDoc(publicRef, lbUpdates, { merge: true });
+                } catch (e) { console.error("Deduct Sync Error", e); }
+            };
+
             const saveUserData = async (newData) => {
                 if (!user || !firebaseConfig) { setUserData(prev => ({ ...prev, ...newData })); return; }
                 const db = getFirestore();
@@ -402,11 +429,27 @@
                 }
 
                 const pKey = getPlayerKey(loginForm.name, loginForm.school, loginForm.province);
-                const pastRecord = leaderboardData.find(p => p.id === pKey);
+                
+                let recoveredPoints = 0;
+                let recoveredLevel = 1;
+                let recoveredAvatar = 'default';
 
-                const recoveredPoints = pastRecord?.points || 0;
-                const recoveredLevel = pastRecord?.unlockedLevel || 1;
-                const recoveredAvatar = pastRecord?.avatar || 'default';
+                // Baca langsung dari server database untuk memastikan data 100% akurat sebelum ditimpa
+                if (user && firebaseConfig) {
+                    const db = getFirestore();
+                    const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', pKey);
+                    try {
+                        const docSnap = await getDoc(publicRef);
+                        if (docSnap.exists()) {
+                            const pastData = docSnap.data();
+                            recoveredPoints = pastData.points || 0;
+                            recoveredLevel = pastData.unlockedLevel || 1;
+                            recoveredAvatar = pastData.avatar || 'default';
+                        }
+                    } catch (err) {
+                        console.error("Gagal mengambil data lama:", err);
+                    }
+                }
 
                 const initData = { 
                     name: loginForm.name, school: loginForm.school, province: loginForm.province, 
@@ -437,10 +480,8 @@
             const buyBatik = (batik) => {
                 const currentPoints = userData?.points || 0;
                 if (currentPoints >= batik.price) {
-                    const newPoints = currentPoints - batik.price;
                     const newOwned = [...(userData?.ownedBatiks || []), batik.id];
-                    saveUserData({ points: newPoints, ownedBatiks: newOwned });
-                    addPoints(0); 
+                    deductPointsSync(batik.price, { ownedBatiks: newOwned });
                     alert(`Berhasil membuka Motif ${batik.name}!`);
                 } else { alert("Poin kamu belum cukup untuk membeli motif ini."); }
             };
@@ -448,15 +489,17 @@
             const buyAvatar = (avatar) => {
                 const currentPoints = userData?.points || 0;
                 if (currentPoints >= avatar.price) {
-                    const newPoints = currentPoints - avatar.price;
                     const newOwned = [...(userData?.ownedAvatars || ['default']), avatar.id];
-                    saveUserData({ points: newPoints, ownedAvatars: newOwned, activeAvatar: avatar.id });
-                    addPoints(0); 
+                    deductPointsSync(avatar.price, { ownedAvatars: newOwned, activeAvatar: avatar.id });
                     alert(`Berhasil mendapatkan Profil ${avatar.name}!`);
                 } else { alert("Poin kamu belum cukup untuk mendapatkan profil ini."); }
             };
 
-            const equipAvatar = (avatarId) => { saveUserData({ activeAvatar: avatarId }); };
+            const equipAvatar = (avatarId) => { 
+                saveUserData({ activeAvatar: avatarId }); 
+                // Cerminkan pergantian avatar ke Papan Peringkat tanpa memotong poin
+                deductPointsSync(0, { activeAvatar: avatarId });
+            };
 
             const toggleFullscreen = () => {
                 if (!document.fullscreenElement) {
@@ -693,7 +736,7 @@
             };
 
             const renderView = () => {
-                if (view === 'loading') return <div className="min-h-[100dvh] bg-orange-50 flex items-center justify-center font-nunito"><div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-600"></div></div>;
+                if (view === 'loading') return <div className="min-h-[100dvh] w-full bg-orange-50 flex items-center justify-center font-nunito"><div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-600"></div></div>;
 
                 if (view === 'landing') {
                     return (
@@ -710,7 +753,7 @@
                                     }
                                 }
                             `}</style>
-                            <div className="min-h-[100dvh] flex flex-col items-center justify-end p-6 md:p-10 font-nunito bg-cover bg-center bg-no-repeat relative bg-landing-responsive">
+                            <div className="min-h-[100dvh] w-full flex flex-col items-center justify-end p-6 md:p-10 font-nunito bg-cover bg-center bg-no-repeat relative bg-landing-responsive">
                                 <FullscreenButton />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent pointer-events-none"></div>
                                 <button onClick={() => setView('login')} className="relative z-10 mb-20 sm:mb-24 md:mb-20 px-10 sm:px-12 md:px-16 py-3 sm:py-4 md:py-6 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white rounded-full font-black text-2xl sm:text-3xl md:text-5xl shadow-[0_6px_0_rgb(180,83,9),0_15px_30px_rgba(251,191,36,0.5)] md:shadow-[0_8px_0_rgb(180,83,9),0_15px_40px_rgba(251,191,36,0.6)] active:shadow-[0_0px_0_rgb(180,83,9)] active:translate-y-1 md:active:translate-y-2 transition-all transform hover:scale-105 animate-bounce flex items-center gap-3 md:gap-4 border-2 md:border-4 border-orange-300/50">
@@ -722,9 +765,9 @@
                 }
 
                 if (view === 'login') return (
-                    <div className="min-h-[100dvh] bg-gradient-to-b from-orange-100 to-orange-300 flex flex-col justify-start md:justify-center items-center p-4 md:p-8 font-nunito overflow-y-auto">
+                    <div className="min-h-[100dvh] w-full bg-gradient-to-b from-orange-100 to-orange-300 flex flex-col justify-start md:justify-center items-center p-4 md:p-8 font-nunito overflow-y-auto">
                         <FullscreenButton />
-                        <div className="bg-white p-6 md:p-10 rounded-[2rem] shadow-2xl w-full max-w-lg md:max-w-2xl text-center mt-8 md:mt-0 transition-all animate-bounce-in">
+                        <div className="bg-white p-6 md:p-10 rounded-[2rem] shadow-2xl w-full max-w-lg md:max-w-2xl text-center mt-8 md:mt-auto mb-auto transition-all animate-bounce-in">
                             <div className="w-20 h-20 md:w-24 md:h-24 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-orange-200 shadow-inner">
                                 <Zap size={40} className="w-10 h-10 md:w-12 md:h-12" />
                             </div>
@@ -754,9 +797,9 @@
                 if (view === 'menu') {
                     const rank = RANKS.slice().reverse().find(r => (userData?.points || 0) >= r.min) || RANKS[0];
                     return (
-                        <div className="min-h-[100dvh] bg-gray-50 p-4 md:p-8 font-nunito flex flex-col items-center justify-start md:justify-center overflow-y-auto">
+                        <div className="min-h-[100dvh] w-full bg-gray-50 p-4 md:p-8 font-nunito flex flex-col items-center justify-start overflow-y-auto">
                             <FullscreenButton />
-                            <div className="flex flex-col w-full max-w-lg md:max-w-4xl lg:max-w-6xl space-y-4 md:space-y-6 py-6 md:py-8 mt-4 md:mt-0">
+                            <div className="flex flex-col w-full max-w-lg md:max-w-4xl lg:max-w-6xl space-y-4 md:space-y-6 py-6 md:py-8 mt-4 md:my-auto">
                                 <div className="flex justify-end w-full mb-2">
                                     <button onClick={handleLogout} className="flex items-center gap-2 bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl font-black text-xs md:text-sm lg:text-base transition-all shadow-sm">
                                         <LogOut className="w-4 h-4 md:w-5 md:h-5" /> Keluar Game
@@ -833,121 +876,12 @@
                     );
                 }
 
-                if (view === 'avatar-shop') {
-                    const ownedAvatars = userData?.ownedAvatars || ['default'];
-                    const activeAvatar = userData?.activeAvatar || 'default';
-
-                    return (
-                        <div className="min-h-[100dvh] bg-pink-50 p-4 md:p-8 font-nunito flex flex-col items-center justify-start md:justify-center overflow-y-auto">
-                            <FullscreenButton />
-                            <div className="w-full max-w-lg md:max-w-4xl lg:max-w-5xl py-8 mt-4 md:mt-0">
-                                <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 mb-6 md:mb-8 bg-white p-4 md:p-6 rounded-[2rem] shadow-sm text-center md:text-left">
-                                    <button onClick={() => setView('menu')} className="p-3 md:p-4 bg-gray-100 rounded-full shadow-sm text-gray-600 hover:bg-gray-200"><ArrowLeft className="w-5 h-5 md:w-6 md:h-6"/></button>
-                                    <div>
-                                        <h2 className="text-2xl md:text-4xl font-black text-pink-600">Toko Avatar Lucu</h2>
-                                        <p className="font-bold text-pink-400 mt-1 text-sm md:text-base">Beli avatar untuk dipajang di Leaderboard!</p>
-                                    </div>
-                                    <div className="md:ml-auto bg-amber-100 text-amber-700 px-4 py-2 rounded-xl font-black text-sm md:text-xl w-full md:w-auto mt-2 md:mt-0 text-center">
-                                        {userData?.points?.toLocaleString() || 0} Poin
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-                                    {AVATARS.map(avatar => {
-                                        const isOwned = ownedAvatars.includes(avatar.id);
-                                        const isActive = activeAvatar === avatar.id;
-                                        
-                                        return (
-                                            <div key={avatar.id} className={`bg-white rounded-[1.5rem] md:rounded-[2rem] p-3 md:p-4 border-2 md:border-4 flex flex-col items-center text-center transition-all ${isActive ? 'border-pink-500 shadow-lg scale-105' : 'border-gray-100 hover:border-pink-300'}`}>
-                                                <div className="text-4xl md:text-7xl mb-2 md:mb-4 bg-gray-50 w-full rounded-2xl py-3 md:py-4">{avatar.icon}</div>
-                                                <h3 className="font-black text-gray-800 text-sm md:text-xl mb-1">{avatar.name}</h3>
-                                                
-                                                <div className="mt-auto w-full pt-2 md:pt-4">
-                                                    {isActive ? (
-                                                        <button className="w-full bg-pink-100 text-pink-600 font-black py-2 md:py-3 rounded-lg md:rounded-xl cursor-default text-xs md:text-base">DIPAKAI</button>
-                                                    ) : isOwned ? (
-                                                        <button onClick={() => equipAvatar(avatar.id)} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-black py-2 md:py-3 rounded-lg md:rounded-xl shadow-[0_3px_0_rgb(29,78,216)] active:translate-y-1 active:shadow-none transition-all text-xs md:text-base">PAKAI</button>
-                                                    ) : (
-                                                        <button onClick={() => buyAvatar(avatar)} className={`w-full font-black py-2 md:py-3 rounded-lg md:rounded-xl transition-all shadow-[0_3px_0_rgba(0,0,0,0.2)] active:translate-y-1 active:shadow-none flex items-center justify-center gap-1 md:gap-2 text-xs md:text-base ${(userData?.points || 0) >= avatar.price ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
-                                                            <Lock size={14}/> {avatar.price.toLocaleString()}
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-                    );
-                }
-
-                if (view === 'quests') {
-                    const quests = userData?.quests || QUEST_TEMPLATES.map(q => ({ ...q, progress: 0, claimed: false }));
-                    const streak = userData?.loginStreak || 1;
-
-                    return (
-                        <div className="min-h-[100dvh] bg-teal-50 p-4 md:p-8 font-nunito flex flex-col items-center justify-start md:justify-center overflow-y-auto">
-                            <FullscreenButton />
-                            <div className="w-full max-w-lg md:max-w-2xl lg:max-w-4xl py-8 mt-4 md:mt-0">
-                                <div className="flex items-center gap-4 md:gap-6 mb-6 md:mb-8 bg-white p-4 md:p-6 rounded-[2rem] shadow-sm">
-                                    <button onClick={() => setView('menu')} className="p-3 md:p-4 bg-gray-100 rounded-full shadow-sm text-gray-600 hover:bg-gray-200"><ArrowLeft className="w-5 h-5 md:w-6 md:h-6"/></button>
-                                    <div>
-                                        <h2 className="text-2xl md:text-4xl font-black text-teal-700">Misi Harian</h2>
-                                        <p className="font-bold text-teal-500 mt-1 text-sm md:text-base">Selesaikan misi untuk poin ekstra!</p>
-                                    </div>
-                                </div>
-
-                                <div className="bg-gradient-to-r from-orange-400 to-red-500 rounded-[2rem] p-5 md:p-6 text-white mb-6 md:mb-8 shadow-lg flex flex-col md:flex-row items-center justify-between text-center md:text-left gap-4">
-                                    <div>
-                                        <p className="font-bold text-orange-100 uppercase tracking-widest text-xs md:text-sm mb-1">Login Streak Harian</p>
-                                        <h3 className="text-2xl md:text-4xl font-black flex items-center justify-center md:justify-start gap-2"><Flame className="text-yellow-300 w-6 h-6 md:w-8 md:h-8"/> {streak} Hari Berturut-turut!</h3>
-                                    </div>
-                                    <div className="text-center md:text-right w-full md:w-auto bg-white/20 p-3 md:p-4 rounded-xl">
-                                        <p className="text-xs md:text-sm font-bold text-orange-100">Bonus besok:</p>
-                                        <p className="text-xl md:text-2xl font-black text-yellow-200">+{(streak + 1) * 50} Poin</p>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3 md:space-y-4">
-                                    {quests.map(quest => {
-                                        const isComplete = quest.progress >= quest.target;
-                                        return (
-                                            <div key={quest.id} className={`bg-white rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-6 border-2 md:border-4 flex flex-col md:flex-row items-center gap-4 md:gap-6 ${isComplete && !quest.claimed ? 'border-teal-400 shadow-lg' : 'border-gray-100'}`}>
-                                                <div className={`w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 ${quest.claimed ? 'bg-gray-100 text-gray-400' : isComplete ? 'bg-teal-100 text-teal-500' : 'bg-orange-100 text-orange-500'}`}>
-                                                    {quest.claimed ? <CheckCircle2 className="w-6 h-6 md:w-8 md:h-8"/> : <CalendarCheck className="w-6 h-6 md:w-8 md:h-8"/>}
-                                                </div>
-                                                <div className="flex-1 w-full text-center md:text-left">
-                                                    <h3 className={`text-base md:text-xl font-black mb-1 md:mb-2 ${quest.claimed ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{quest.title}</h3>
-                                                    <div className="w-full bg-gray-200 rounded-full h-2 md:h-3 mb-1 overflow-hidden">
-                                                        <div className={`h-full transition-all ${isComplete ? 'bg-teal-500' : 'bg-orange-500'}`} style={{ width: `${Math.min(100, (quest.progress/quest.target)*100)}%` }}></div>
-                                                    </div>
-                                                    <p className="text-xs md:text-sm font-bold text-gray-500">{quest.progress} / {quest.target}</p>
-                                                </div>
-                                                <div className="w-full md:w-auto shrink-0 mt-2 md:mt-0">
-                                                    {quest.claimed ? (
-                                                        <button className="w-full md:w-auto px-4 py-2 md:px-6 md:py-3 bg-gray-100 text-gray-400 font-black rounded-lg md:rounded-xl cursor-not-allowed text-xs md:text-base">DIKLAIM</button>
-                                                    ) : isComplete ? (
-                                                        <button onClick={() => claimQuest(quest.id)} className="w-full md:w-auto px-6 py-2 md:px-8 md:py-3 bg-teal-500 hover:bg-teal-600 text-white font-black rounded-lg md:rounded-xl shadow-[0_3px_0_rgb(13,148,136)] active:translate-y-1 active:shadow-none transition-all text-xs md:text-base">KLAIM +{quest.reward}</button>
-                                                    ) : (
-                                                        <div className="px-4 py-2 md:px-6 md:py-3 bg-orange-50 text-orange-600 font-black rounded-lg md:rounded-xl border-2 border-orange-200 text-center text-xs md:text-base">+{quest.reward} Poin</div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-                    );
-                }
-
                 if (view === 'map') {
                     const unlockedLvl = userData?.unlockedLevel || 1;
                     return (
-                        <div className="min-h-[100dvh] bg-blue-50 p-4 md:p-8 font-nunito flex flex-col items-center justify-start md:justify-center overflow-y-auto">
+                        <div className="min-h-[100dvh] w-full bg-blue-50 p-4 md:p-8 font-nunito flex flex-col items-center justify-start overflow-y-auto">
                             <FullscreenButton />
-                            <div className="w-full max-w-lg md:max-w-3xl lg:max-w-5xl py-8 mt-4 md:mt-0">
+                            <div className="w-full max-w-lg md:max-w-3xl lg:max-w-5xl py-8 mt-4 md:my-auto">
                                 <div className="flex items-center gap-4 md:gap-6 mb-6 md:mb-12 bg-white p-4 md:p-6 rounded-[2rem] shadow-sm">
                                     <button onClick={() => setView('menu')} className="p-3 md:p-4 bg-gray-100 rounded-full shadow-sm text-gray-600 hover:bg-gray-200"><ArrowLeft className="w-5 h-5 md:w-6 md:h-6"/></button>
                                     <div>
@@ -1000,9 +934,9 @@
 
                 if (view === 'leaderboard') {
                     return (
-                        <div className="min-h-[100dvh] bg-amber-50 p-2 md:p-8 font-nunito flex flex-col items-center justify-center overflow-hidden">
+                        <div className="min-h-[100dvh] w-full bg-amber-50 p-2 md:p-4 lg:p-8 font-nunito flex flex-col items-center justify-start overflow-y-auto">
                             <FullscreenButton />
-                            <div className="w-full max-w-lg md:max-w-4xl lg:max-w-5xl bg-white rounded-2xl md:rounded-[2rem] shadow-xl overflow-hidden border-2 md:border-4 border-amber-200 flex flex-col h-[90dvh] md:h-[85vh]">
+                            <div className="w-full max-w-lg md:max-w-4xl lg:max-w-5xl bg-white rounded-2xl md:rounded-[2rem] shadow-xl border-2 md:border-4 border-amber-200 flex flex-col h-[95dvh] md:h-[90dvh] mt-2 md:my-auto shrink-0 overflow-hidden">
                                 <div className="bg-gradient-to-r from-amber-500 to-amber-600 p-4 md:p-8 flex items-center gap-3 md:gap-4 text-white relative shrink-0">
                                     <button onClick={() => setView('menu')} className="p-2 md:p-3 bg-white/20 hover:bg-white/30 rounded-full backdrop-blur transition-colors"><ArrowLeft className="w-5 h-5 md:w-6 md:h-6"/></button>
                                     <div className="flex-1">
@@ -1059,9 +993,9 @@
 
                 if (view === 'multiplayer-setup') {
                     return (
-                        <div className="min-h-[100dvh] bg-blue-50 p-4 md:p-8 font-nunito flex flex-col items-center justify-start md:justify-center overflow-y-auto">
+                        <div className="min-h-[100dvh] w-full bg-blue-50 p-4 md:p-8 font-nunito flex flex-col items-center justify-start overflow-y-auto">
                             <FullscreenButton />
-                            <div className="bg-white p-5 md:p-10 rounded-3xl md:rounded-[2rem] shadow-xl w-full max-w-lg md:max-w-3xl mt-4 md:mt-0">
+                            <div className="bg-white p-5 md:p-10 rounded-3xl md:rounded-[2rem] shadow-xl w-full max-w-lg md:max-w-3xl mt-4 md:my-auto">
                                 <div className="flex items-center gap-4 mb-6 md:mb-8 border-b-2 border-gray-100 pb-4 md:pb-6">
                                     <button onClick={() => setView('menu')} className="p-2 md:p-4 bg-gray-100 rounded-full shadow-sm text-gray-600 hover:bg-gray-200"><ArrowLeft className="w-5 h-5 md:w-6 md:h-6"/></button>
                                     <div>
@@ -1206,7 +1140,7 @@
                     const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
 
                     return (
-                        <div className={`fixed inset-0 flex flex-col items-center font-nunito p-2 md:p-6 lg:p-8 transition-colors duration-500 ${bgClass}`} style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}>
+                        <div className={`min-h-[100dvh] w-full flex flex-col items-center font-nunito p-2 md:p-6 lg:p-8 transition-colors duration-500 ${bgClass}`} style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}>
                             <FullscreenButton />
                             {floatingTexts.map(ft => ( <FloatingText key={ft.id} text={ft.text} x={ft.x} y={ft.y} onComplete={() => setFloatingTexts(prev => prev.filter(t => t.id !== ft.id))} /> ))}
 
@@ -1216,7 +1150,7 @@
                                 </div>
                             )}
 
-                            <div className="w-full max-w-5xl flex flex-col lg:flex-row items-center lg:items-stretch justify-center flex-1 gap-2 md:gap-6 min-h-0 w-full pb-2">
+                            <div className="w-full max-w-5xl flex flex-col lg:flex-row items-center lg:items-start justify-center flex-1 gap-2 md:gap-6 w-full pb-2 md:my-auto">
                                 
                                 {/* Header Panel */}
                                 <div className="w-full lg:w-1/3 flex flex-row lg:flex-col justify-between items-center bg-gray-800 rounded-[1.5rem] lg:rounded-3xl p-3 md:p-6 shadow-xl border-b-4 md:border-b-8 lg:border-b-0 lg:border-r-8 border-gray-950 shrink-0 gap-2">
@@ -1239,7 +1173,7 @@
                                 </div>
 
                                 {/* Game Area */}
-                                <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 w-full overflow-hidden gap-2">
+                                <div className="flex-1 flex flex-col justify-start md:justify-center items-center w-full min-h-0 w-full overflow-hidden gap-2">
                                     {!selectedBlock ? (
                                         <div className={`shadow-xl relative border-4 md:border-8 rounded-2xl md:rounded-[2rem] p-1.5 md:p-4 w-full max-w-[min(100%,_45vh)] lg:max-w-[min(100%,_65vh)] aspect-square shrink-0 ${isFever ? 'bg-orange-600 border-yellow-400' : 'bg-gray-800 border-gray-700'}`}>
                                             <div className="absolute inset-1.5 md:inset-4 rounded-xl md:rounded-2xl bg-cover bg-center opacity-80" style={{ backgroundImage: `url(${activeBatik.bgImage})`}}></div>
@@ -1283,9 +1217,8 @@
                     const isWin = view === 'win';
                     const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
                     return (
-                        <div className={`min-h-[100dvh] flex flex-col items-center justify-center p-4 md:p-10 font-nunito ${isWin ? 'bg-green-50' : 'bg-red-50'} overflow-y-auto`}>
-                            <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap'); .font-nunito { font-family: 'Nunito', sans-serif; }`}</style>
-                            <div className="bg-white p-6 md:p-12 rounded-[2rem] md:rounded-[3rem] shadow-2xl max-w-sm md:max-w-2xl w-full text-center border-2 md:border-4 border-gray-100 my-auto">
+                        <div className={`min-h-[100dvh] w-full flex flex-col items-center justify-start overflow-y-auto p-4 md:p-10 font-nunito ${isWin ? 'bg-green-50' : 'bg-red-50'}`}>
+                            <div className="bg-white p-6 md:p-12 rounded-[2rem] md:rounded-[3rem] shadow-2xl max-w-sm md:max-w-2xl w-full text-center border-2 md:border-4 border-gray-100 mt-10 md:my-auto shrink-0">
                                 <div className="text-6xl md:text-9xl mb-4 md:mb-8">{isWin ? '🏝️' : (timeLeft <= 0 ? '⏰' : '💥')}</div>
                                 <h2 className={`text-2xl md:text-5xl font-black mb-2 md:mb-4 ${isWin ? 'text-green-600' : 'text-red-600'}`}>
                                     {isWin ? `PULAU ${currentIsland.name.toUpperCase()} SELESAI!` : (timeLeft <= 0 ? 'WAKTU HABIS!' : 'YAH, GAGAL...')}
@@ -1320,9 +1253,9 @@
                     const islandBatiks = BATIKS.filter(b => b.islandId === level);
 
                     return (
-                        <div className="min-h-[100dvh] bg-gray-50 p-4 md:p-8 font-nunito flex flex-col items-center justify-start md:justify-center overflow-y-auto">
+                        <div className="min-h-[100dvh] w-full bg-gray-50 p-4 md:p-8 font-nunito flex flex-col items-center justify-start overflow-y-auto">
                             <FullscreenButton />
-                            <div className="w-full max-w-lg md:max-w-4xl lg:max-w-6xl py-8 mt-4 md:mt-0">
+                            <div className="w-full max-w-lg md:max-w-4xl lg:max-w-6xl py-8 mt-4 md:my-auto">
                                 <div className="flex flex-row items-center gap-3 md:gap-6 mb-6 md:mb-12 bg-white p-3 md:p-6 rounded-[1.5rem] md:rounded-[2rem] shadow-sm">
                                     <button onClick={() => setView('map')} className="p-2 md:p-4 bg-gray-100 rounded-full shadow-sm text-gray-600 hover:bg-gray-200"><ArrowLeft className="w-5 h-5 md:w-7 md:h-7"/></button>
                                     <div>
@@ -1409,7 +1342,7 @@
 
                                 <button 
                                     onClick={() => setDailyPopup({ ...dailyPopup, show: false })}
-                                    className="w-full bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white py-3 md:py-4 rounded-lg md:rounded-xl font-black text-base md:text-xl shadow-[0_4px_0_rgb(180,83,9)] md:shadow-[0_6px_0_rgb(180,83,9)] active:translate-y-1 active:shadow-none transition-all uppercase tracking-wider"
+                                    className="w-full bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white py-3 md:py-4 rounded-lg md:rounded-xl font-black text-base md:text-xl shadow-[0_4px_0_rgb(180,83,9)] active:translate-y-1 active:shadow-none transition-all uppercase tracking-wider"
                                 >
                                     Siap Berpetualang!
                                 </button>
