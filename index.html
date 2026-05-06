@@ -69,8 +69,8 @@
         import { createRoot } from 'react-dom/client';
         import { initializeApp } from 'firebase/app';
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, signOut } from 'firebase/auth';
-        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, serverTimestamp, increment } from 'firebase/firestore';
-        import { Play, Users, Trophy, ArrowLeft, Heart, Zap, Lock, School, Clock, Lightbulb, Bomb, Maximize, Minimize, Swords, User, MapPin, Medal, Flame, Map as MapIcon, ChevronRight, CalendarCheck, CheckCircle2, LogOut } from 'lucide-react';
+        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, serverTimestamp, increment, writeBatch } from 'firebase/firestore';
+        import { Play, Users, Trophy, ArrowLeft, Heart, Zap, Lock, School, Clock, Lightbulb, Bomb, Maximize, Minimize, Swords, User, MapPin, Medal, Flame, Map as MapIcon, ChevronRight, LogOut, Search, CalendarCheck } from 'lucide-react';
 
         // ==========================================
         // 1. DATA & KONFIGURASI
@@ -85,41 +85,32 @@
             { id: 'dragon', icon: '🐉', name: 'Naga Emas', price: 10000 },
         ];
 
-        const QUEST_TEMPLATES = [
-            { id: 'q_solo', type: 'play_solo', target: 2, reward: 500, title: 'Main 2x Mode Solo' },
-            { id: 'q_duel', type: 'play_duel', target: 1, reward: 800, title: 'Main 1x Mode Duel' },
-            { id: 'q_bomb', type: 'use_bomb', target: 1, reward: 300, title: 'Gunakan 1x Bom' },
-            { id: 'q_correct', type: 'answer_correct', target: 20, reward: 1000, title: 'Jawab 20 Soal Benar' },
-        ];
-
         const BATIKS = [
-            { id: 'siger', islandId: 1, name: 'Mahkota Siger', price: 0, mathConcept: 'Geometri: Simetri Lipat', pattern: 'siger', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 100 },
-            { id: 'durianpecah', islandId: 1, name: 'Durian Pecah', price: 1000, mathConcept: 'Pecahan & Sudut', pattern: 'durian', bgImage: 'https://images.unsplash.com/photo-1583089851608-592f6c8d76db?auto=format&fit=crop&q=80&w=600', baseScore: 150 },
-            { id: 'ikantumbal', islandId: 1, name: 'Ikan Tumbal', price: 3000, mathConcept: 'Translasi Bangun', pattern: 'ikan', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 200 },
-            { id: 'kawung', islandId: 2, name: 'Kawung', price: 0, mathConcept: 'Pola Lingkaran Berpotongan', pattern: 'circles', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 150 },
-            { id: 'megamendung', islandId: 2, name: 'Megamendung', price: 2000, mathConcept: 'Kurva & Skala Bertingkat', pattern: 'clouds', bgImage: 'https://images.unsplash.com/photo-1583089851608-592f6c8d76db?auto=format&fit=crop&q=80&w=600', baseScore: 200 },
-            { id: 'parang', islandId: 2, name: 'Parang Rusak', price: 4500, mathConcept: 'Garis Sejajar & Gradien', pattern: 'diagonal', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 250 },
-            { id: 'batanggaring', islandId: 3, name: 'Batang Garing', price: 0, mathConcept: 'Pohon Faktor (Perkalian)', pattern: 'tree', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 200 },
-            { id: 'mandau', islandId: 3, name: 'Mandau', price: 2500, mathConcept: 'Garis Tegak Lurus', pattern: 'sword', bgImage: 'https://images.unsplash.com/photo-1583089851608-592f6c8d76db?auto=format&fit=crop&q=80&w=600', baseScore: 250 },
-            { id: 'singabarong', islandId: 4, name: 'Singa Barong', price: 0, mathConcept: 'Rotasi Bangun Datar', pattern: 'lion', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 250 },
-            { id: 'ulundanu', islandId: 4, name: 'Ulun Danu', price: 3000, mathConcept: 'Refleksi Sumbu X', pattern: 'temple', bgImage: 'https://images.unsplash.com/photo-1583089851608-592f6c8d76db?auto=format&fit=crop&q=80&w=600', baseScore: 300 },
-            { id: 'kudasumba', islandId: 5, name: 'Kuda Sumba', price: 0, mathConcept: 'Deret Aritmatika', pattern: 'horse', bgImage: 'https://images.unsplash.com/photo-1605808360022-7711d9ceeb07?auto=format&fit=crop&q=80&w=600', baseScore: 300 },
-            { id: 'mamuli', islandId: 5, name: 'Mamuli Rote', price: 4000, mathConcept: 'Geometri Fraktal', pattern: 'jewelry', bgImage: 'https://images.unsplash.com/photo-1583089851608-592f6c8d76db?auto=format&fit=crop&q=80&w=600', baseScore: 350 },
+            // PULAU 1: SUMATRA (MUDAH)
+            { id: 'siger', islandId: 1, name: 'Mahkota Siger', price: 0, mathConcept: 'Penjumlahan', pattern: 'siger', bgImage: 'https://github.com/user-attachments/assets/6bdde0b1-211e-4d78-8c9d-19a7afaa44e5', baseScore: 100 },
+            { id: 'ikantumbal', islandId: 1, name: 'Ikan Tumbal', price: 1000, mathConcept: 'Penjumlahan Cepat', pattern: 'ikan', bgImage: 'https://github.com/user-attachments/assets/ab955825-d5d4-4b50-a958-9f47105482e4', baseScore: 150 },
+            
+            // PULAU 2: JAWA (SEDANG)
+            { id: 'kawung', islandId: 2, name: 'Kawung', price: 0, mathConcept: 'Penjumlahan & Pengurangan', pattern: 'circles', bgImage: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Batik_Kawung.JPG/600px-Batik_Kawung.JPG', baseScore: 200 },
+            { id: 'megamendung', islandId: 2, name: 'Mega Mendung', price: 2000, mathConcept: 'Pengurangan Lanjut', pattern: 'clouds', bgImage: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Batik_Megamendung.jpg/600px-Batik_Megamendung.jpg', baseScore: 250 },
+            { id: 'parang', islandId: 2, name: 'Parang', price: 4000, mathConcept: 'Operasi Campur Sedang', pattern: 'diagonal', bgImage: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Batik_Parang_Rusak.jpg/600px-Batik_Parang_Rusak.jpg', baseScore: 300 },
+            
+            // PULAU 3: SUMBA NTT (SULIT)
+            { id: 'karaja', islandId: 3, name: 'Karaja', price: 0, mathConcept: 'Dasar Perkalian', pattern: 'horse', bgImage: 'https://images.unsplash.com/photo-1603504380196-857ea7f71120?auto=format&fit=crop&q=80&w=600', baseScore: 350 },
+            { id: 'kaliuda', islandId: 3, name: 'Kaliuda', price: 5000, mathConcept: 'Perkalian & Pembagian', pattern: 'jewelry', bgImage: 'https://images.unsplash.com/photo-1581023773172-e1d9046da8ea?auto=format&fit=crop&q=80&w=600', baseScore: 400 },
+            { id: 'pahikung', islandId: 3, name: 'Pahikung', price: 8000, mathConcept: 'Operasi Campur Sulit', pattern: 'temple', bgImage: 'https://images.unsplash.com/photo-1518599904199-0ca897819ddb?auto=format&fit=crop&q=80&w=600', baseScore: 500 },
         ];
 
         const ISLANDS = [
-            { id: 1, name: "Sumatra", desc: "Penjumlahan Dasar", icon: "🌴", color: "from-emerald-400 to-green-600", align: "justify-start" },
-            { id: 2, name: "Jawa", desc: "Penjumlahan & Pengurangan", icon: "🌋", color: "from-blue-400 to-indigo-600", align: "justify-end" },
-            { id: 3, name: "Kalimantan", desc: "Pengenalan Perkalian", icon: "🦧", color: "from-amber-400 to-orange-600", align: "justify-start" },
-            { id: 4, name: "Bali", desc: "Operasi Pembagian", icon: "🌺", color: "from-pink-400 to-rose-600", align: "justify-end" },
-            { id: 5, name: "NTT", desc: "Ujian Maestro Nusantara", icon: "🦎", color: "from-purple-400 to-violet-600", align: "justify-center" },
+            { id: 1, name: "Sumatra", desc: "Tingkat Mudah", icon: "🌴", color: "from-emerald-400 to-green-600", align: "justify-start" },
+            { id: 2, name: "Jawa", desc: "Tingkat Sedang", icon: "🌋", color: "from-blue-400 to-indigo-600", align: "justify-center" },
+            { id: 3, name: "Sumba NTT", desc: "Tingkat Sulit", icon: "🦎", color: "from-amber-400 to-orange-600", align: "justify-end" },
         ];
 
         const RANKS = [
             { min: 0, title: "Pemula Batik", color: "text-slate-600", bg: "bg-slate-100" },
-            { min: 1000, title: "Pengrajin Muda", color: "text-green-600", bg: "bg-green-100" },
-            { min: 5000, title: "Ahli Canting", color: "text-blue-600", bg: "bg-blue-100" },
-            { min: 15000, title: "Maestro Batik", color: "text-purple-600", bg: "bg-purple-100" },
+            { min: 3000, title: "Pengrajin Batik", color: "text-green-600", bg: "bg-green-100" },
+            { min: 10000, title: "Pakar Batik", color: "text-amber-600", bg: "bg-amber-100" },
         ];
 
         // ==========================================
@@ -135,13 +126,13 @@
 
         const FloatingText = ({ text, x, y, onComplete }) => {
             useEffect(() => {
-                const timer = setTimeout(onComplete, 1000);
+                const timer = setTimeout(onComplete, 1500); 
                 return () => clearTimeout(timer);
             }, [onComplete]);
 
             return (
-                <div className="absolute z-50 text-xl md:text-3xl lg:text-4xl font-black text-white pointer-events-none drop-shadow-lg whitespace-nowrap"
-                     style={{ left: x, top: y, animation: 'floatUp 1s ease-out forwards', textShadow: '0 2px 4px rgba(0,0,0,0.5)', transform: 'translateX(-50%)' }}>
+                <div className="absolute z-50 text-2xl md:text-4xl font-black text-white pointer-events-none drop-shadow-[0_0_15px_rgba(0,0,0,0.8)] whitespace-nowrap"
+                     style={{ left: x, top: y, animation: 'floatUp 1.5s ease-out forwards', transform: 'translateX(-50%)' }}>
                     {text}
                 </div>
             );
@@ -167,7 +158,11 @@
             const [view, setView] = useState('loading');
             const [loginForm, setLoginForm] = useState({ name: '', province: '', school: '' });
             const [isFullscreen, setIsFullscreen] = useState(false);
-            const [dailyPopup, setDailyPopup] = useState({ show: false, streak: 0, bonus: 0, quests: [] });
+            const [isSyncing, setIsSyncing] = useState(false);
+            const [dailyPopup, setDailyPopup] = useState({ show: false, streak: 0, bonus: 0 });
+            
+            // --- Mobile Blocker State ---
+            const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
             
             const timerRef = useRef(null);
             
@@ -193,7 +188,7 @@
             useEffect(() => { userDataRef.current = userData; }, [userData]);
 
             // --- Multiplayer (Duel) States ---
-            const [mpSetup, setMpSetup] = useState({ p1Name: 'Pemain Atas', p2Name: 'Pemain Bawah', level: 2, timeLimit: 300 });
+            const [mpSetup, setMpSetup] = useState({ p1Name: 'Pemain Kiri', p2Name: 'Pemain Kanan', level: 2, timeLimit: 300 });
             const [mpState, setMpState] = useState({
                 p1: { score: 0, lives: 3, grid: [], activeBlock: null, input: '', feedback: null },
                 p2: { score: 0, lives: 3, grid: [], activeBlock: null, input: '', feedback: null },
@@ -244,7 +239,6 @@
                             setView('landing');
                         } else {
                             setUserData(data);
-                            checkDailyLogin(data);
                             setView(v => (v === 'loading' || v === 'login' || v === 'landing') ? 'menu' : v);
                         }
                     } else { setView('landing'); }
@@ -273,6 +267,15 @@
                 return () => { unsubProfile(); unsubLb(); };
             }, [user]);
 
+            // --- Listener Resolusi Layar ---
+            useEffect(() => {
+                const handleResize = () => {
+                    setIsMobile(window.innerWidth < 1024);
+                };
+                window.addEventListener('resize', handleResize);
+                return () => window.removeEventListener('resize', handleResize);
+            }, []);
+
             // --- SISTEM SATU PINTU LOGIKA POIN ---
             const addPoints = async (amount) => {
                 if (amount <= 0 || !user || !firebaseConfig) return;
@@ -293,20 +296,27 @@
                 const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', pKey);
                 
                 try {
-                    await setDoc(profileRef, { points: newTotalPoints, updatedAt: serverTimestamp() }, { merge: true });
-                    await setDoc(publicRef, {
+                    const batch = writeBatch(db);
+                    
+                    batch.set(profileRef, { 
+                        points: increment(amount), 
+                        updatedAt: serverTimestamp() 
+                    }, { merge: true });
+                    
+                    batch.set(publicRef, {
                         name: pName,
                         school: pSchool,
                         province: pProv,
                         unlockedLevel: currentData.unlockedLevel || 1,
                         avatar: currentData.activeAvatar || 'default',
-                        points: newTotalPoints, 
+                        points: increment(amount), 
                         updatedAt: serverTimestamp()
                     }, { merge: true });
+
+                    await batch.commit();
                 } catch (e) { console.error("Point Sync Error", e); }
             };
 
-            // Fungsi Khusus Mengurangi Poin Saat Belanja (Sinkronisasi Aman)
             const deductPointsSync = async (cost, additionalData) => {
                 if (!user || !firebaseConfig) return;
                 const db = getFirestore();
@@ -324,12 +334,23 @@
                 const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', pKey);
 
                 try {
-                    // Update Profil
-                    await setDoc(profileRef, { points: newTotalPoints, ...additionalData, updatedAt: serverTimestamp() }, { merge: true });
-                    // Paksa samakan Poin Leaderboard & Avatar Baru (jika ada)
-                    const lbUpdates = { points: newTotalPoints, updatedAt: serverTimestamp() };
+                    const batch = writeBatch(db);
+                    
+                    batch.set(profileRef, { 
+                        ...additionalData, 
+                        points: increment(-cost), 
+                        updatedAt: serverTimestamp() 
+                    }, { merge: true });
+                    
+                    const lbUpdates = { 
+                        points: increment(-cost), 
+                        updatedAt: serverTimestamp() 
+                    };
                     if (additionalData.activeAvatar) lbUpdates.avatar = additionalData.activeAvatar;
-                    await setDoc(publicRef, lbUpdates, { merge: true });
+                    
+                    batch.set(publicRef, lbUpdates, { merge: true });
+
+                    await batch.commit();
                 } catch (e) { console.error("Deduct Sync Error", e); }
             };
 
@@ -342,82 +363,21 @@
                 } catch (e) { console.error("Save Data Error", e); }
             };
 
-            const checkDailyLogin = (data) => {
-                const today = new Date().toDateString();
-                const yesterdayDate = new Date();
-                yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-                const yesterday = yesterdayDate.toDateString();
-
-                let updates = {};
-                let needUpdate = false;
-                let showPopup = false;
-                let currentStreak = data.loginStreak || 0;
-                let currentBonus = 0;
-                let currentQuests = data.quests || QUEST_TEMPLATES.map(q => ({ ...q, progress: 0, claimed: false }));
-
-                if (data.lastLoginDate !== today) {
-                    updates.lastLoginDate = today;
-                    if (data.lastLoginDate === yesterday) { currentStreak += 1; } else { currentStreak = 1; }
-                    updates.loginStreak = currentStreak;
-                    currentBonus = currentStreak * 50;
-                    
-                    showPopup = true;
-                    needUpdate = true;
-                }
-
-                if (data.lastQuestDate !== today) {
-                    updates.lastQuestDate = today;
-                    currentQuests = QUEST_TEMPLATES.map(q => ({ ...q, progress: 0, claimed: false }));
-                    updates.quests = currentQuests;
-                    needUpdate = true;
-                }
-
-                if (needUpdate) {
-                    saveUserData(updates);
-                    if (currentBonus > 0) setTimeout(() => addPoints(currentBonus), 500);
-                }
-                if (showPopup) setDailyPopup({ show: true, streak: currentStreak, bonus: currentBonus, quests: currentQuests });
-            };
-
-            const updateQuestProgress = (questType, amount = 1) => {
-                const currentData = userDataRef.current;
-                if (!currentData || !currentData.quests) return;
-                let hasChanges = false;
-                const newQuests = currentData.quests.map(q => {
-                    if (q.type === questType && !q.claimed && q.progress < q.target) {
-                        hasChanges = true;
-                        return { ...q, progress: Math.min(q.target, q.progress + amount) };
-                    }
-                    return q;
-                });
-                if (hasChanges) saveUserData({ quests: newQuests });
-            };
-
-            const claimQuest = (questId) => {
-                const currentData = userDataRef.current;
-                if (!currentData) return;
-                const questIndex = currentData.quests.findIndex(q => q.id === questId);
-                if (questIndex === -1) return;
-                const quest = currentData.quests[questIndex];
-                
-                if (quest.progress >= quest.target && !quest.claimed) {
-                    const newQuests = [...currentData.quests];
-                    newQuests[questIndex].claimed = true;
-                    saveUserData({ quests: newQuests });
-                    addPoints(quest.reward); 
-                    alert(`🎉 Misi Selesai!\nMendapat +${quest.reward} Poin.`);
-                }
-            };
-
-            const handleSaveAndExit = () => {
-                if(scoreRef.current > 0) addPoints(scoreRef.current);
+            const handleSaveAndExit = async () => {
+                if (isSyncing) return;
+                setIsSyncing(true);
+                if(scoreRef.current > 0) await addPoints(scoreRef.current);
                 setScore(0);
+                setIsSyncing(false);
                 setView('map');
             };
 
-            const handleSaveAndReplay = () => {
-                if(scoreRef.current > 0) addPoints(scoreRef.current);
+            const handleSaveAndReplay = async () => {
+                if (isSyncing) return;
+                setIsSyncing(true);
+                if(scoreRef.current > 0) await addPoints(scoreRef.current);
                 setScore(0);
+                setIsSyncing(false);
                 startGame(activeBatik.id, level);
             };
 
@@ -434,7 +394,6 @@
                 let recoveredLevel = 1;
                 let recoveredAvatar = 'default';
 
-                // Baca langsung dari server database untuk memastikan data 100% akurat sebelum ditimpa
                 if (user && firebaseConfig) {
                     const db = getFirestore();
                     const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', pKey);
@@ -456,7 +415,6 @@
                     points: recoveredPoints, unlockedLevel: recoveredLevel, 
                     activeAvatar: recoveredAvatar, ownedAvatars: ['default', recoveredAvatar],
                     ownedBatiks: [], powerups: { bomb: 3, hint: 5 },
-                    lastLoginDate: null, lastQuestDate: null, 
                     isLoggedOut: false 
                 };
                 
@@ -471,19 +429,9 @@
                     await setDoc(profileRef, { isLoggedOut: true }, { merge: true }); 
                 }
                 setUserData(null);
-                setDailyPopup({ show: false, streak: 0, bonus: 0, quests: [] });
                 setLoginForm({ name: '', province: '', school: '' });
                 setScore(0);
                 setView('landing');
-            };
-
-            const buyBatik = (batik) => {
-                const currentPoints = userData?.points || 0;
-                if (currentPoints >= batik.price) {
-                    const newOwned = [...(userData?.ownedBatiks || []), batik.id];
-                    deductPointsSync(batik.price, { ownedBatiks: newOwned });
-                    alert(`Berhasil membuka Motif ${batik.name}!`);
-                } else { alert("Poin kamu belum cukup untuk membeli motif ini."); }
             };
 
             const buyAvatar = (avatar) => {
@@ -497,7 +445,6 @@
 
             const equipAvatar = (avatarId) => { 
                 saveUserData({ activeAvatar: avatarId }); 
-                // Cerminkan pergantian avatar ke Papan Peringkat tanpa memotong poin
                 deductPointsSync(0, { activeAvatar: avatarId });
             };
 
@@ -513,8 +460,7 @@
             const generateQuestion = (lvl) => {
                 let types = ['add'];
                 if (lvl >= 2) types.push('sub'); 
-                if (lvl >= 3) types.push('mul'); 
-                if (lvl >= 4) types.push('div'); 
+                if (lvl >= 3) types.push('mul', 'div'); 
                 
                 const type = types[Math.floor(Math.random() * types.length)];
                 let n1, n2, ans, text;
@@ -547,13 +493,26 @@
                 }));
             };
 
+            // EFEK PENGGANTIAN MOTIF OTOMATIS SAAT MAIN
+            useEffect(() => {
+                if (view === 'game') {
+                    const currentTotal = (userData?.points || 0) + score;
+                    const islandBatiks = BATIKS.filter(b => b.islandId === level).sort((a, b) => b.price - a.price);
+                    const highestBatik = islandBatiks.find(b => currentTotal >= b.price);
+                    
+                    if (highestBatik && highestBatik.id !== activeBatik.id && highestBatik.price > activeBatik.price) {
+                        setActiveBatik(highestBatik);
+                        setFloatingTexts(prev => [...prev, { id: Date.now()+Math.random(), text: `🌟 Motif ${highestBatik.name} Terbuka! 🌟`, x: window.innerWidth / 2, y: window.innerHeight / 2 }]);
+                    }
+                }
+            }, [score, userData?.points, level, view, activeBatik.id, activeBatik.price]);
+
             useEffect(() => {
                 if (view === 'game') {
                     const timer = setInterval(() => {
                         setTimeLeft(prev => {
                             if (prev <= 1) {
                                 clearInterval(timer);
-                                updateQuestProgress('play_solo'); 
                                 setView('gameover');
                                 return 0;
                             }
@@ -589,7 +548,6 @@
                     setFeedback('correct');
                     const newCombo = combo + 1; 
                     setCombo(newCombo);
-                    updateQuestProgress('answer_correct'); 
                     
                     let isTriggeringFever = false;
                     let currentFever = feverTimer;
@@ -619,7 +577,6 @@
                             const totalLevelScore = score + bonus + earned; 
                             setScore(totalLevelScore); 
                             
-                            updateQuestProgress('play_solo'); 
                             const currentUnlocked = userDataRef.current?.unlockedLevel || 1;
                             const nextLevel = level + 1;
                             if (nextLevel > currentUnlocked && nextLevel <= ISLANDS.length) {
@@ -637,7 +594,6 @@
                         setFeedback(null); 
                         setInputAnswer(''); 
                         if (lives <= 1) { 
-                            updateQuestProgress('play_solo'); 
                             setView('gameover'); 
                         } 
                     }, 800);
@@ -659,7 +615,6 @@
                         setMpState(prev => {
                             if (prev.timer <= 1) { 
                                 clearInterval(timerRef.current); 
-                                updateQuestProgress('play_duel'); 
                                 return { ...prev, timer: 0, winner: 'draw' }; 
                             }
                             return { ...prev, timer: prev.timer - 1 };
@@ -683,7 +638,6 @@
                         let newState = { ...prev, [pKey]: { ...prev[pKey], feedback: 'correct', score: prev[pKey].score + (player.activeBlock.isSpecial ? 200 : 100) } };
                         if (isFinished && !prev.winner) {
                             newState.winner = pKey;
-                            updateQuestProgress('play_duel'); 
                         }
                         return newState;
                     });
@@ -697,7 +651,6 @@
                         let newState = { ...prev, [pKey]: { ...prev[pKey], feedback: 'wrong', lives: newLives } };
                         if (newLives <= 0 && !prev.winner) {
                             newState.winner = pKey === 'p1' ? 'p2' : 'p1';
-                            updateQuestProgress('play_duel'); 
                         }
                         return newState;
                     });
@@ -711,17 +664,21 @@
                 </button>
             );
 
-            const renderNumpad = (inputValue, setInput, onSubmit, isP2 = false, isCompact = false) => {
+            // Numpad 3D Magis untuk petualangan (Tombol dinamis agar tidak terpotong)
+            const renderNumpad = (inputValue, setInput, onSubmit, isP2 = false, isCompact = false, isSuperCompact = false) => {
                 const handleNum = (n, e) => { 
                     if (e) e.preventDefault();
                     if (inputValue.length < 4) setInput(inputValue + n); 
                 };
-                const btnClass = `bg-gray-100/90 backdrop-blur hover:bg-gray-200 text-gray-800 font-black ${isCompact ? 'text-lg md:text-xl py-2' : 'text-xl md:text-2xl py-3'} rounded-xl shadow-sm border-b-4 border-gray-300 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center min-h-[40px] md:min-h-[50px] select-none`;
-                const delClass = `bg-red-100 hover:bg-red-200 text-red-600 font-black ${isCompact ? 'text-sm md:text-base py-2' : 'text-base md:text-xl py-3'} rounded-xl shadow-sm border-b-4 border-red-300 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center min-h-[40px] md:min-h-[50px] select-none`;
-                const goClass = `font-black ${isCompact ? 'text-base md:text-lg py-2' : 'text-lg md:text-xl py-3'} rounded-xl shadow-sm border-b-4 transition-all flex items-center justify-center min-h-[40px] md:min-h-[50px] select-none ${inputValue ? 'bg-orange-500 hover:bg-orange-600 text-white border-orange-700 active:border-b-0 active:translate-y-1' : 'bg-gray-300 text-gray-500 border-gray-400 pointer-events-none'}`;
+                
+                const btnClass = `bg-slate-700 hover:bg-slate-600 text-slate-100 font-black h-full min-h-[35px] lg:min-h-[45px] ${isSuperCompact ? 'text-lg lg:text-xl rounded-lg shadow-[0_3px_0_rgb(30,41,59)] active:translate-y-1' : isCompact ? 'text-lg md:text-xl rounded-xl shadow-[0_4px_0_rgb(30,41,59)] active:translate-y-1' : 'text-xl md:text-3xl rounded-2xl shadow-[0_6px_0_rgb(30,41,59)] active:translate-y-1.5'} transition-all flex items-center justify-center select-none border-t border-slate-500 active:shadow-none`;
+                
+                const delClass = `bg-rose-600 hover:bg-rose-500 text-white font-black h-full min-h-[35px] lg:min-h-[45px] ${isSuperCompact ? 'text-xs lg:text-sm rounded-xl shadow-[0_3px_0_rgb(159,18,57)] active:translate-y-1' : isCompact ? 'text-sm md:text-base rounded-xl shadow-[0_4px_0_rgb(159,18,57)] active:translate-y-1' : 'text-base md:text-xl rounded-2xl shadow-[0_6px_0_rgb(159,18,57)] active:translate-y-1.5'} transition-all flex items-center justify-center select-none border-t border-rose-400 active:shadow-none`;
+                
+                const goClass = `font-black h-full min-h-[35px] lg:min-h-[45px] ${isSuperCompact ? 'text-sm lg:text-base rounded-xl' : isCompact ? 'text-base md:text-lg rounded-xl' : 'text-lg md:text-2xl rounded-2xl'} transition-all flex items-center justify-center select-none border-t ${inputValue ? 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-[0_3px_0_rgb(6,95,70)] md:shadow-[0_4px_0_rgb(6,95,70)] active:shadow-none active:translate-y-0.5 md:active:translate-y-1 border-emerald-400' : 'bg-slate-800 text-slate-600 shadow-[0_3px_0_rgb(15,23,42)] md:shadow-[0_4px_0_rgb(15,23,42)] border-slate-700 pointer-events-none'}`;
 
                 return (
-                    <div className={`grid grid-cols-3 gap-1.5 md:gap-2 w-full max-w-sm mx-auto ${isP2 ? 'dir-rtl' : ''}`}>
+                    <div className={`grid grid-cols-3 gap-1.5 md:gap-2 w-full max-w-sm mx-auto flex-1 min-h-0 ${isP2 ? 'dir-rtl' : ''}`}>
                         {[1,2,3,4,5,6,7,8,9].map(n => ( <button key={n} onPointerDown={(e) => handleNum(n.toString(), e)} className={btnClass}>{n}</button> ))}
                         <button onPointerDown={(e) => { e.preventDefault(); setInput(inputValue.slice(0,-1)); }} className={delClass}>DEL</button>
                         <button onPointerDown={(e) => handleNum('0', e)} className={btnClass}>0</button>
@@ -736,19 +693,17 @@
             };
 
             const renderView = () => {
-                if (view === 'loading') return <div className="min-h-[100dvh] w-full bg-orange-50 flex items-center justify-center font-nunito"><div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-600"></div></div>;
+                if (view === 'loading') return <div className="min-h-[100dvh] w-full bg-slate-900 flex items-center justify-center font-nunito"><div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-500"></div></div>;
 
                 if (view === 'landing') {
                     return (
                         <React.Fragment>
                             <style>{`
                                 .bg-landing-responsive {
-                                    /* Gambar 9:16 khusus untuk layar HP */
                                     background-image: url('https://github.com/user-attachments/assets/a44c6c46-11de-4400-861d-b057877d034a'); 
                                 }
                                 @media (min-width: 768px) {
                                     .bg-landing-responsive {
-                                        /* Gambar 16:9 untuk Layar Lebar (Tablet/Laptop) */
                                         background-image: url('https://github.com/user-attachments/assets/049296a9-8c28-4a0a-afa6-e96c62810028');
                                     }
                                 }
@@ -822,28 +777,24 @@
                                             <Trophy className="w-4 h-4" /> {rank.title}
                                         </div>
                                     </div>
-                                    <div className="text-center md:text-right bg-orange-50 p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 md:border-4 border-orange-100 w-full md:w-auto mt-2 md:mt-0">
-                                        <p className="text-xs md:text-sm font-bold text-orange-400 uppercase tracking-widest mb-1">Total Poin</p>
-                                        <p className="text-3xl md:text-5xl lg:text-6xl font-black text-orange-500">{userData?.points?.toLocaleString() || 0}</p>
-                                    </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                                    <button onClick={() => setView('map')} className="col-span-1 sm:col-span-2 md:col-span-2 bg-gradient-to-br from-emerald-500 to-green-600 p-5 md:p-8 rounded-[2rem] text-white shadow-[0_6px_0_rgb(21,128,61)] md:shadow-[0_8px_0_rgb(21,128,61)] active:translate-y-1 md:active:translate-y-2 transition-all flex flex-col items-center md:items-start text-left relative overflow-hidden group">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4 md:gap-6">
+                                    <button onClick={() => setView('map')} className="bg-gradient-to-br from-emerald-500 to-green-600 p-5 md:p-8 rounded-[2rem] text-white shadow-[0_6px_0_rgb(21,128,61)] md:shadow-[0_8px_0_rgb(21,128,61)] active:translate-y-1 md:active:translate-y-2 transition-all flex flex-col items-center md:items-start text-left relative overflow-hidden group">
                                         <div className="absolute -right-5 -bottom-5 md:-right-10 md:-bottom-10 opacity-20 group-hover:scale-110 transition-transform"><MapIcon size={120} className="md:w-[150px] md:h-[150px]"/></div>
                                         <div className="w-12 h-12 md:w-16 md:h-16 bg-white/20 rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-6 backdrop-blur-sm"><Play fill="currentColor" className="w-6 h-6 md:w-8 md:h-8" /></div>
                                         <h3 className="text-2xl md:text-3xl lg:text-4xl font-black mb-1 md:mb-2">Petualangan</h3>
                                         <p className="font-bold text-green-100 text-xs md:text-sm lg:text-base">Jelajahi Peta Nusantara!</p>
                                     </button>
 
-                                    <button onClick={() => setView('multiplayer-setup')} className="col-span-1 sm:col-span-2 md:col-span-2 bg-gradient-to-br from-blue-500 to-blue-700 p-5 md:p-8 rounded-[2rem] text-white shadow-[0_6px_0_rgb(29,78,216)] md:shadow-[0_8px_0_rgb(29,78,216)] active:translate-y-1 md:active:translate-y-2 transition-all flex flex-col items-center md:items-start text-left relative overflow-hidden group">
+                                    <button onClick={() => setView('multiplayer-setup')} className="bg-gradient-to-br from-blue-500 to-blue-700 p-5 md:p-8 rounded-[2rem] text-white shadow-[0_6px_0_rgb(29,78,216)] md:shadow-[0_8px_0_rgb(29,78,216)] active:translate-y-1 md:active:translate-y-2 transition-all flex flex-col items-center md:items-start text-left relative overflow-hidden group">
                                         <div className="absolute -right-5 -bottom-5 md:-right-10 md:-bottom-10 opacity-20 group-hover:scale-110 transition-transform"><Swords size={120} className="md:w-[150px] md:h-[150px]"/></div>
                                         <div className="w-12 h-12 md:w-16 md:h-16 bg-white/20 rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-6 backdrop-blur-sm"><Users fill="currentColor" className="w-6 h-6 md:w-8 md:h-8" /></div>
                                         <h3 className="text-2xl md:text-3xl lg:text-4xl font-black mb-1 md:mb-2">Mode Duel</h3>
                                         <p className="font-bold text-blue-100 text-xs md:text-sm lg:text-base">Tantang Temanmu (1 vs 1)</p>
                                     </button>
 
-                                    <button onClick={() => setView('avatar-shop')} className="col-span-1 sm:col-span-1 md:col-span-2 bg-white border-4 border-pink-200 p-4 md:p-6 rounded-[2rem] text-pink-600 shadow-[0_4px_0_rgb(24bc,191,214)] active:translate-y-1 transition-all flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 hover:border-pink-400">
+                                    <button onClick={() => setView('avatar-shop')} className="bg-white border-4 border-pink-200 p-4 md:p-6 rounded-[2rem] text-pink-600 shadow-[0_4px_0_rgb(24bc,191,214)] active:translate-y-1 transition-all flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 hover:border-pink-400">
                                         <div className="text-4xl md:text-5xl lg:text-6xl">🦊</div>
                                         <div className="text-center md:text-left">
                                             <h3 className="text-lg md:text-xl lg:text-2xl font-black">Toko Avatar</h3>
@@ -851,25 +802,65 @@
                                         </div>
                                     </button>
 
-                                    <button onClick={() => setView('quests')} className="col-span-1 sm:col-span-1 md:col-span-2 bg-white border-4 border-teal-200 p-4 md:p-6 rounded-[2rem] text-teal-600 shadow-[0_4px_0_rgb(153,246,228)] active:translate-y-1 transition-all flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 hover:border-teal-400 relative">
-                                        {userData?.quests?.some(q => q.progress >= q.target && !q.claimed) && <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full border-2 border-white animate-bounce"></div>}
-                                        <div className="text-4xl md:text-5xl lg:text-6xl">📜</div>
-                                        <div className="text-center md:text-left">
-                                            <h3 className="text-lg md:text-xl lg:text-2xl font-black">Misi Harian</h3>
-                                            <p className="text-[10px] md:text-xs lg:text-sm font-bold text-teal-400">Klaim hadiah</p>
-                                        </div>
-                                    </button>
-
-                                    <button onClick={() => setView('leaderboard')} className="col-span-1 sm:col-span-2 md:col-span-4 bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 p-5 md:p-8 rounded-[2rem] text-white shadow-[0_6px_0_rgb(180,83,9)] md:shadow-[0_8px_0_rgb(180,83,9)] active:translate-y-1 md:active:translate-y-2 transition-all flex flex-row items-center justify-between relative overflow-hidden group">
-                                        <div className="absolute right-4 md:right-10 top-1/2 -translate-y-1/2 opacity-30 group-hover:scale-125 transition-transform"><CantingEmas size={100} className="md:w-[120px] md:h-[120px]"/></div>
-                                        <div className="text-left relative z-10 flex flex-row items-center gap-4 md:gap-6">
-                                            <div className="w-12 h-12 md:w-16 md:h-16 bg-white/20 rounded-xl md:rounded-2xl flex items-center justify-center backdrop-blur-sm"><Medal fill="currentColor" className="w-6 h-6 md:w-8 md:h-8" /></div>
+                                    <button onClick={() => setView('leaderboard')} className="bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 p-4 md:p-6 rounded-[2rem] text-white shadow-[0_4px_0_rgb(180,83,9)] md:shadow-[0_6px_0_rgb(180,83,9)] active:translate-y-1 transition-all flex flex-row items-center justify-between relative overflow-hidden group">
+                                        <div className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 opacity-30 group-hover:scale-125 transition-transform"><CantingEmas size={80} className="md:w-[100px] md:h-[100px]"/></div>
+                                        <div className="text-left relative z-10 flex flex-row items-center gap-3 md:gap-4">
+                                            <div className="w-10 h-10 md:w-14 md:h-14 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm"><Medal fill="currentColor" className="w-5 h-5 md:w-7 md:h-7" /></div>
                                             <div>
-                                                <h3 className="text-xl md:text-3xl lg:text-4xl font-black mb-1 drop-shadow-md">Papan Peringkat</h3>
-                                                <p className="font-bold text-amber-100 text-[10px] md:text-sm lg:text-base">Lihat Pembatik Terbaik Nasional</p>
+                                                <h3 className="text-lg md:text-xl lg:text-2xl font-black mb-0.5 drop-shadow-md">Papan Peringkat</h3>
+                                                <p className="font-bold text-amber-100 text-[10px] md:text-xs lg:text-sm">Pembatik Terbaik Nasional</p>
                                             </div>
                                         </div>
                                     </button>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+
+                if (view === 'avatar-shop') {
+                    const ownedAvatars = userData?.ownedAvatars || ['default'];
+                    const activeAvatar = userData?.activeAvatar || 'default';
+
+                    return (
+                        <div className="min-h-[100dvh] bg-pink-50 p-4 md:p-8 font-nunito flex flex-col items-center justify-start md:justify-center overflow-y-auto">
+                            <FullscreenButton />
+                            <div className="w-full max-w-lg md:max-w-4xl lg:max-w-5xl py-8 mt-4 md:mt-0">
+                                <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 mb-6 md:mb-8 bg-white p-4 md:p-6 rounded-[2rem] shadow-sm text-center md:text-left">
+                                    <button onClick={() => setView('menu')} className="p-3 md:p-4 bg-gray-100 rounded-full shadow-sm text-gray-600 hover:bg-gray-200"><ArrowLeft className="w-5 h-5 md:w-6 md:h-6"/></button>
+                                    <div>
+                                        <h2 className="text-2xl md:text-4xl font-black text-pink-600">Toko Avatar Lucu</h2>
+                                        <p className="font-bold text-pink-400 mt-1 text-sm md:text-base">Beli avatar untuk dipajang di Leaderboard!</p>
+                                    </div>
+                                    <div className="md:ml-auto bg-amber-100 text-amber-700 px-4 py-2 rounded-xl font-black text-sm md:text-xl w-full md:w-auto mt-2 md:mt-0 text-center">
+                                        {userData?.points?.toLocaleString() || 0} Poin
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+                                    {AVATARS.map(avatar => {
+                                        const isOwned = ownedAvatars.includes(avatar.id);
+                                        const isActive = activeAvatar === avatar.id;
+                                        
+                                        return (
+                                            <div key={avatar.id} className={`bg-white rounded-[1.5rem] md:rounded-[2rem] p-3 md:p-4 border-2 md:border-4 flex flex-col items-center text-center transition-all ${isActive ? 'border-pink-500 shadow-lg scale-105' : 'border-gray-100 hover:border-pink-300'}`}>
+                                                <div className="text-4xl md:text-7xl mb-2 md:mb-4 bg-gray-50 w-full rounded-2xl py-3 md:py-4">{avatar.icon}</div>
+                                                <h3 className="font-black text-gray-800 text-sm md:text-xl mb-1">{avatar.name}</h3>
+                                                
+                                                <div className="mt-auto w-full pt-2 md:pt-4">
+                                                    {isActive ? (
+                                                        <button className="w-full bg-pink-100 text-pink-600 font-black py-2 md:py-3 rounded-lg md:rounded-xl cursor-default text-xs md:text-base">DIPAKAI</button>
+                                                    ) : isOwned ? (
+                                                        <button onClick={() => equipAvatar(avatar.id)} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-black py-2 md:py-3 rounded-lg md:rounded-xl shadow-[0_3px_0_rgb(29,78,216)] active:translate-y-1 active:shadow-none transition-all text-xs md:text-base">PAKAI</button>
+                                                    ) : (
+                                                        <button onClick={() => buyAvatar(avatar)} className={`w-full font-black py-2 md:py-3 rounded-lg md:rounded-xl transition-all shadow-[0_3px_0_rgba(0,0,0,0.2)] active:translate-y-1 active:shadow-none flex items-center justify-center gap-1 md:gap-2 text-xs md:text-base ${(userData?.points || 0) >= avatar.price ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                                                            <Lock size={14}/> {avatar.price.toLocaleString()}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
@@ -1045,12 +1036,12 @@
                         const textClass = colorTheme === 'orange' ? 'text-orange-400' : 'text-blue-400';
                         
                         return (
-                            <div className={`flex-1 flex flex-col p-2 md:p-4 min-h-0 ${bgClass} relative overflow-hidden transition-all duration-500 ${isWinner ? 'scale-105 z-20 shadow-2xl bg-green-900/80' : ''} ${isLoser ? 'opacity-50 grayscale' : ''}`}>
-                                <div className={`bg-gray-900/80 backdrop-blur border-b-2 md:border-b-4 ${borderClass} p-2 md:p-3 rounded-xl md:rounded-2xl flex justify-between items-center mb-1 md:mb-4 shadow-md shrink-0`}>
+                            <div className={`flex-1 flex flex-col p-1.5 md:p-3 min-h-0 ${bgClass} relative overflow-hidden transition-all duration-500 ${isWinner ? 'scale-105 z-20 shadow-2xl bg-green-900/80' : ''} ${isLoser ? 'opacity-50 grayscale' : ''}`}>
+                                <div className={`bg-gray-900/80 backdrop-blur border-b-2 md:border-b-4 ${borderClass} p-2 md:p-3 rounded-xl flex justify-between items-center mb-1 md:mb-2 shadow-md shrink-0`}>
                                     <div>
                                         <h3 className={`text-sm md:text-xl font-black truncate max-w-[120px] md:max-w-[200px] ${textClass}`}>{pName}</h3>
-                                        <div className="flex gap-0.5 md:gap-1 mt-0.5 md:mt-1 text-red-500">
-                                            {[...Array(3)].map((_, i) => <Heart key={i} className="w-3 h-3 md:w-5 md:h-5" fill={i < player.lives ? "currentColor" : "none"} />)}
+                                        <div className="flex gap-0.5 md:gap-1 mt-0.5 text-red-500">
+                                            {[...Array(3)].map((_, i) => <Heart key={i} className="w-3 h-3 md:w-4 md:h-4" fill={i < player.lives ? "currentColor" : "none"} />)}
                                         </div>
                                     </div>
                                     <div className="text-right">
@@ -1059,35 +1050,44 @@
                                     </div>
                                 </div>
 
-                                <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full relative">
-                                    {!player.activeBlock ? (
-                                        <div className="w-full max-w-[min(100%,_32vh)] md:max-w-[350px] aspect-square bg-gray-800/80 p-1.5 md:p-4 rounded-2xl md:rounded-[2rem] shadow-xl border-2 md:border-4 border-gray-700 backdrop-blur relative">
-                                            <div className="absolute inset-1.5 md:inset-4 rounded-xl md:rounded-2xl bg-cover bg-center opacity-40" style={{ backgroundImage: `url(${BATIKS[0].bgImage})`}}></div>
-                                            <div className="grid grid-cols-4 grid-rows-4 gap-1 w-full h-full relative z-10">
-                                                {player.grid.map(b => (
-                                                    <button key={b.id} onPointerDown={(e) => { e.preventDefault(); if(b.active && !mpState.winner) setMpState(prev => ({...prev, [pKey]: {...prev[pKey], activeBlock: b, input: '', feedback: null}})) }}
-                                                        className={`rounded-md md:rounded-xl transition-all transform font-bold text-sm md:text-xl select-none
-                                                            ${!b.active ? 'opacity-0 scale-50' : 'opacity-100 scale-100 shadow-[0_2px_0_rgba(0,0,0,0.3)] md:shadow-[0_4px_0_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-none'}
-                                                            ${b.isSpecial ? 'bg-gradient-to-br from-yellow-400 to-orange-500' : 'bg-gradient-to-br from-slate-600 to-slate-800'}
-                                                        `}>
-                                                        {b.active && <span className="text-white drop-shadow-md">{b.isSpecial ? '★' : '?'}</span>}
-                                                    </button>
-                                                ))}
-                                            </div>
+                                <div className="flex-1 flex flex-row items-center justify-center min-h-0 w-full gap-4 relative z-10 py-2">
+                                    {/* GRID SIDE */}
+                                    <div className="w-full max-w-full aspect-square relative border-4 md:border-8 border-slate-700 rounded-2xl md:rounded-[2rem] bg-slate-800/80 p-2 shrink-0 shadow-[0_10px_30px_rgba(0,0,0,0.5)]" style={{ height: 'min(45vh, 380px)' }}>
+                                        <div className="absolute inset-2 rounded-xl md:rounded-2xl bg-cover bg-center opacity-80 transition-all duration-1000 ease-in-out" style={{ backgroundImage: `url("${BATIKS[0].bgImage}")`}}></div>
+                                        <div className="grid grid-cols-4 grid-rows-4 gap-1 w-full h-full relative z-10">
+                                            {player.grid.map(b => (
+                                                <button key={b.id} onPointerDown={(e) => { e.preventDefault(); if(b.active && !mpState.winner) setMpState(prev => ({...prev, [pKey]: {...prev[pKey], activeBlock: b, input: '', feedback: null}})) }}
+                                                    className={`rounded-lg transition-all transform font-bold text-lg md:text-2xl select-none backdrop-blur-sm border
+                                                        ${!b.active ? 'opacity-0 scale-50' : 'opacity-100 shadow-md active:translate-y-0.5'}
+                                                        ${player.activeBlock?.id === b.id ? 'ring-2 md:ring-4 ring-yellow-400 animate-pulse' : ''}
+                                                        ${b.isSpecial ? 'bg-gradient-to-br from-yellow-400 to-orange-500 border-orange-300 text-white' : 'bg-slate-700/90 text-slate-300 border-slate-500'}
+                                                    `}>
+                                                    {b.active && (b.isSpecial ? <span className="drop-shadow-md">★</span> : '?')}
+                                                </button>
+                                            ))}
                                         </div>
-                                    ) : (
-                                        <div className="w-[90%] max-w-sm flex flex-col justify-center gap-2 md:gap-4 absolute inset-0 bg-gray-900/95 backdrop-blur-sm p-3 md:p-6 rounded-2xl z-20 m-auto h-fit">
-                                            <div className="text-center shrink-0">
-                                                <p className="text-[10px] md:text-sm font-bold text-gray-400 mb-0.5 md:mb-1 uppercase tracking-widest">Selesaikan Soal</p>
-                                                <div className="text-2xl md:text-4xl font-black text-white tracking-wider drop-shadow-lg">
-                                                    {player.activeBlock.q.text} = <span className={`inline-block min-w-[40px] md:min-w-[80px] border-b-2 md:border-b-4 pb-0.5 ${player.feedback === 'wrong' ? 'border-red-500 text-red-500 animate-pulse' : 'border-blue-500 text-blue-400'}`}>{player.input || '?'}</span>
+                                    </div>
+
+                                    {/* NUMPAD SIDE */}
+                                    <div className="w-full max-w-[320px] flex flex-col shrink-0" style={{ height: 'min(35vh, 280px)' }}>
+                                        {!player.activeBlock ? (
+                                             <div className="flex-1 border-4 border-dashed border-slate-600 rounded-[1.5rem] flex items-center justify-center p-6 text-center bg-slate-800/50">
+                                                <span className="text-sm md:text-lg text-slate-300 font-bold leading-tight">Sentuh Segel Misteri<br/>di atas!</span>
+                                             </div>
+                                        ) : (
+                                            <div className="flex flex-col bg-indigo-950/90 border-2 md:border-4 border-indigo-500/50 rounded-2xl md:rounded-[1.5rem] p-3 md:p-5 shadow-xl backdrop-blur-sm relative overflow-hidden h-full">
+                                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.2)_0%,transparent_70%)] pointer-events-none"></div>
+                                                <div className="text-center mb-2 md:mb-4 shrink-0 relative z-10">
+                                                    <div className="text-2xl md:text-4xl font-black text-white whitespace-nowrap drop-shadow-md">
+                                                        {player.activeBlock.q.text} = <span className={`inline-block min-w-[50px] md:min-w-[70px] border-b-4 border-indigo-400 pb-0.5 md:pb-1 ${player.feedback === 'wrong' ? 'text-rose-400 border-rose-400' : 'text-emerald-400'}`}>{player.input || '?'}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex-1 mt-auto relative z-10 flex flex-col justify-end w-full min-h-0">
+                                                    {renderNumpad(player.input, (val) => setMpState(prev => ({...prev, [pKey]: {...prev[pKey], input: val}})), (e) => submitMpAnswer(pKey, e), pKey === 'p2', false, true)}
                                                 </div>
                                             </div>
-                                            <div className="shrink-0 w-full">
-                                                {renderNumpad(player.input, (val) => setMpState(prev => ({...prev, [pKey]: {...prev[pKey], input: val}})), (e) => submitMpAnswer(pKey, e), pKey === 'p2', true)}
-                                            </div>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
 
                                 {isWinner && (
@@ -1136,78 +1136,105 @@
 
                 if (view === 'game') {
                     const isFever = feverTimer > 0;
-                    const bgClass = isFever ? 'bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500' : 'bg-gray-900';
+                    const bgClass = isFever ? 'bg-gradient-to-b from-rose-900 to-orange-900' : 'bg-slate-900';
                     const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
 
                     return (
-                        <div className={`min-h-[100dvh] w-full flex flex-col items-center font-nunito p-2 md:p-6 lg:p-8 transition-colors duration-500 ${bgClass}`} style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}>
+                        <div className={`fixed inset-0 flex flex-col font-nunito p-4 lg:p-6 transition-colors duration-500 ${bgClass}`} style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}>
                             <FullscreenButton />
+                            {/* Efek Bintang/Magis di latar belakang saat fever */}
+                            {isFever && <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 pointer-events-none mix-blend-overlay"></div>}
+                            
                             {floatingTexts.map(ft => ( <FloatingText key={ft.id} text={ft.text} x={ft.x} y={ft.y} onComplete={() => setFloatingTexts(prev => prev.filter(t => t.id !== ft.id))} /> ))}
 
+                            {/* Top Bar: Kiri Info, Kanan Status */}
+                            <div className="w-full flex justify-between items-start z-10 shrink-0 mb-2 lg:mb-4">
+                                <div className="text-white">
+                                    <button onClick={() => setView('skin-select')} className="mb-1 text-slate-400 hover:text-white flex items-center gap-1 font-bold text-sm transition-colors"><ArrowLeft size={16}/> Kembali</button>
+                                    <div className="text-sm font-bold uppercase tracking-widest text-indigo-300">{currentIsland.name}</div>
+                                    <div className="text-2xl lg:text-3xl font-black drop-shadow-md">{activeBatik.name}</div>
+                                </div>
+                                
+                                <div className="flex items-center gap-4 lg:gap-6 bg-slate-800/80 px-4 py-2 lg:py-3 rounded-2xl border border-slate-600 shadow-xl backdrop-blur-md">
+                                    <div className="flex gap-1 drop-shadow-md">
+                                        {[...Array(3)].map((_, i) => <Heart key={i} fill={i < lives ? "currentColor" : "none"} className={`w-5 h-5 lg:w-7 lg:h-7 ${i >= lives ? "text-slate-600" : "text-rose-500"}`} />)}
+                                    </div>
+                                    <div className="w-px h-8 lg:h-10 bg-slate-600"></div>
+                                    <div className="text-right">
+                                        <div className="text-[10px] lg:text-xs uppercase tracking-widest text-slate-400 font-bold leading-none mb-1">Skor Saat Ini</div>
+                                        <div className="text-xl lg:text-3xl font-black text-white leading-none">{score}</div>
+                                    </div>
+                                    <div className="w-px h-8 lg:h-10 bg-slate-600"></div>
+                                    <div className={`flex items-center gap-2 px-2 py-1.5 lg:px-3 lg:py-2 rounded-xl border shadow-inner ${isFever ? 'bg-rose-900 border-rose-500' : 'bg-slate-900 border-slate-700'}`}>
+                                        <Clock className={`w-4 h-4 lg:w-6 lg:h-6 ${timeLeft <= 10 ? 'text-rose-500 animate-pulse' : 'text-amber-400'}`}/>
+                                        <span className={`font-black text-lg lg:text-2xl leading-none ${timeLeft <= 10 && !isFever ? 'text-rose-500' : 'text-slate-100'}`}>{timeLeft}s</span>
+                                    </div>
+                                </div>
+                            </div>
+
                             {isFever && (
-                                <div className="w-full max-w-[90%] md:max-w-3xl bg-black/30 rounded-full h-1.5 md:h-3 mb-2 md:mb-4 overflow-hidden backdrop-blur-sm border border-yellow-300 shadow-[0_0_10px_rgba(250,204,21,0.6)] shrink-0">
-                                    <div className="h-full bg-yellow-400 shadow-[0_0_10px_#fff]" style={{ width: `${(feverTimer/10)*100}%`, transition: 'width 1s linear' }}></div>
+                                <div className="w-full max-w-3xl mx-auto bg-black/50 rounded-full h-1.5 lg:h-2 mb-2 overflow-hidden backdrop-blur-sm border border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)] shrink-0 relative z-10">
+                                    <div className="h-full bg-gradient-to-r from-yellow-300 to-yellow-500 shadow-[0_0_10px_#fff]" style={{ width: `${(feverTimer/10)*100}%`, transition: 'width 1s linear' }}></div>
                                 </div>
                             )}
 
-                            <div className="w-full max-w-5xl flex flex-col lg:flex-row items-center lg:items-start justify-center flex-1 gap-2 md:gap-6 w-full pb-2 md:my-auto">
+                            {/* Main Content: Kiri Grid, Kanan Numpad */}
+                            <div className="flex-1 flex flex-row items-center justify-center gap-6 lg:gap-12 w-full min-h-0 z-10 px-4">
                                 
-                                {/* Header Panel */}
-                                <div className="w-full lg:w-1/3 flex flex-row lg:flex-col justify-between items-center bg-gray-800 rounded-[1.5rem] lg:rounded-3xl p-3 md:p-6 shadow-xl border-b-4 md:border-b-8 lg:border-b-0 lg:border-r-8 border-gray-950 shrink-0 gap-2">
-                                    <div className="flex flex-col md:flex-row lg:flex-col items-center gap-1 md:gap-2 text-red-500 shrink-0">
-                                        <div className="flex gap-0.5 md:gap-1">
-                                            {[...Array(3)].map((_, i) => <Heart key={i} fill={i < lives ? "currentColor" : "none"} className={`w-4 h-4 sm:w-5 sm:h-5 md:w-8 md:h-8 ${i >= lives ? "text-white/20" : ""}`} />)}
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="text-center flex-1 lg:flex-none">
-                                        <div className="text-[10px] md:text-sm lg:text-base font-bold uppercase tracking-widest text-gray-400 truncate max-w-[120px] sm:max-w-[180px] lg:max-w-none mx-auto">{currentIsland.name}</div>
-                                        <div className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black text-white leading-none mt-0.5 md:mt-1">{score}</div>
-                                        {isFever && <div className="text-[8px] md:text-xs lg:text-sm font-black text-yellow-300 animate-pulse mt-0.5 md:mt-1">🔥 x3 POINT 🔥</div>}
-                                    </div>
-                                    
-                                    <div className={`px-2 py-1 md:px-4 md:py-2 rounded-lg md:rounded-xl flex items-center justify-center gap-1 md:gap-2 shrink-0 min-w-[50px] md:min-w-[80px] ${isFever ? 'bg-red-600' : 'bg-gray-700'}`}>
-                                        <Clock className={`w-3 h-3 sm:w-4 sm:h-4 md:w-6 md:h-6 ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-yellow-400'}`}/>
-                                        <span className={`font-black text-base md:text-xl lg:text-2xl leading-none ${timeLeft <= 10 && !isFever ? 'text-red-500' : 'text-white'}`}>{timeLeft}s</span>
+                                {/* KIRI: Grid Batu Segel */}
+                                <div className={`shadow-[0_10px_40px_rgba(0,0,0,0.5)] relative border-4 lg:border-8 rounded-[1.5rem] lg:rounded-[2rem] p-2 lg:p-3 aspect-square shrink-0 ${isFever ? 'bg-orange-600 border-yellow-500' : 'bg-slate-800 border-slate-600'} transition-all duration-300`} style={{ height: 'min(60vh, 500px)' }}>
+                                    <div className="absolute inset-2 lg:inset-3 rounded-xl bg-cover bg-center opacity-90 transition-all duration-1000 ease-in-out" style={{ backgroundImage: `url("${activeBatik.bgImage}")`}}></div>
+                                    <div className="grid grid-cols-4 grid-rows-4 gap-1.5 lg:gap-2 w-full h-full relative z-10">
+                                        {grid.map(b => (
+                                            <button key={b.id} 
+                                                onPointerDown={(e) => { e.preventDefault(); if(b.active) { setSelectedBlock(b); setInputAnswer(''); setFeedback(null); }}}
+                                                className={`rounded-lg lg:rounded-xl transition-all transform flex items-center justify-center font-bold text-xl lg:text-3xl select-none backdrop-blur-sm
+                                                    ${!b.active ? 'opacity-0 pointer-events-none scale-90' : 'opacity-100 scale-100 shadow-[0_4px_0_rgba(0,0,0,0.5)] active:translate-y-1'}
+                                                    ${selectedBlock?.id === b.id ? 'ring-4 ring-yellow-400 animate-pulse z-20' : ''}
+                                                    ${b.isSpecial ? 'bg-gradient-to-br from-yellow-400 to-amber-600 text-white border border-yellow-300' : (isFever ? 'bg-gradient-to-br from-rose-500 to-orange-500 border border-orange-300 text-white' : 'bg-slate-700/95 text-slate-400 border border-slate-500')}`}>
+                                                {b.active && (b.isSpecial ? <span className="drop-shadow-md">★</span> : <span className="opacity-50">?</span>)}
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
 
-                                {/* Game Area */}
-                                <div className="flex-1 flex flex-col justify-start md:justify-center items-center w-full min-h-0 w-full overflow-hidden gap-2">
-                                    {!selectedBlock ? (
-                                        <div className={`shadow-xl relative border-4 md:border-8 rounded-2xl md:rounded-[2rem] p-1.5 md:p-4 w-full max-w-[min(100%,_45vh)] lg:max-w-[min(100%,_65vh)] aspect-square shrink-0 ${isFever ? 'bg-orange-600 border-yellow-400' : 'bg-gray-800 border-gray-700'}`}>
-                                            <div className="absolute inset-1.5 md:inset-4 rounded-xl md:rounded-2xl bg-cover bg-center opacity-80" style={{ backgroundImage: `url(${activeBatik.bgImage})`}}></div>
-                                            <div className="grid grid-cols-4 grid-rows-4 gap-1 md:gap-2 w-full h-full relative z-10">
-                                                {grid.map(b => (
-                                                    <button key={b.id} onPointerDown={(e) => { e.preventDefault(); if(b.active) { setSelectedBlock(b); setInputAnswer(''); setFeedback(null); }}}
-                                                        className={`rounded-md md:rounded-xl transition-all transform flex items-center justify-center font-bold text-lg md:text-3xl shadow-[0_2px_0_rgba(0,0,0,0.3)] md:shadow-[0_4px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-0.5 select-none
-                                                            ${!b.active ? 'opacity-0 pointer-events-none scale-50' : 'opacity-100 scale-100'}
-                                                            ${b.isSpecial ? 'bg-gradient-to-br from-yellow-400 to-amber-500' : (isFever ? 'bg-gradient-to-br from-red-500 to-orange-500' : 'bg-gradient-to-br from-blue-400 to-blue-600')}`}>
-                                                        {b.active && (b.isSpecial ? <span className="text-white drop-shadow-md">★</span> : <span className="text-white/30 text-sm md:text-2xl">?</span>)}
-                                                    </button>
-                                                ))}
+                                {/* KANAN: Numpad Panel */}
+                                <div className="w-[340px] lg:w-[400px] flex flex-col shrink-0" style={{ height: 'min(60vh, 500px)' }}>
+                                    {selectedBlock ? (
+                                        <div className="bg-gradient-to-b from-indigo-900 to-slate-900 rounded-[2rem] p-5 lg:p-6 shadow-[0_0_30px_rgba(79,70,229,0.3)] border-4 border-indigo-500/50 flex flex-col w-full h-full animate-bounce-in relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.2)_0%,transparent_60%)] pointer-events-none"></div>
+                                            
+                                            <div className="flex justify-between items-center mb-4 lg:mb-6 relative z-10 shrink-0">
+                                                <button onPointerDown={(e) => { e.preventDefault(); setSelectedBlock(null); }} className="text-indigo-200 bg-indigo-950/50 p-2 lg:p-3 rounded-full hover:bg-indigo-800 border border-indigo-500/30 select-none transition-colors"><ArrowLeft className="w-5 h-5 lg:w-6 lg:h-6"/></button>
+                                                <div className="text-center flex-1 mx-2">
+                                                    <p className="text-[10px] lg:text-xs font-black text-indigo-300 uppercase tracking-widest flex items-center justify-center gap-1"><Zap size={12}/> Segel Terkunci</p>
+                                                    <div className="text-3xl lg:text-4xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] flex justify-center items-center gap-3 mt-1 lg:mt-2">
+                                                        <span>{selectedBlock.q.text}</span> <span className="text-indigo-400">=</span> <span className={`inline-block min-w-[60px] lg:min-w-[80px] text-center border-b-4 pb-1 rounded-lg bg-black/40 backdrop-blur-sm transition-all ${feedback === 'wrong' ? 'border-rose-500 text-rose-500 shadow-[inset_0_0_10px_rgba(225,29,72,0.5)]' : 'border-emerald-400 text-emerald-400 shadow-[inset_0_0_10px_rgba(52,211,153,0.3)]'}`}>{inputAnswer || '?'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex justify-center gap-2 lg:gap-3 mb-4 lg:mb-6 relative z-10 shrink-0">
+                                                <button onPointerDown={(e) => { e.preventDefault(); if(powerups?.hint>0){ setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, hint: p.hint-1}))} }} disabled={powerups?.hint <= 0} className="flex items-center gap-1.5 lg:gap-2 bg-indigo-950 border border-indigo-500 text-indigo-300 px-3 py-2 lg:px-4 lg:py-2.5 rounded-xl font-bold text-[10px] lg:text-sm disabled:opacity-50 select-none shadow-[0_4px_0_rgb(49,46,129)] active:translate-y-1 active:shadow-none transition-all">
+                                                    <Lightbulb className="w-3 h-3 lg:w-4 lg:h-4 text-yellow-400"/> Petunjuk ({powerups?.hint || 0})
+                                                </button>
+                                                <button onPointerDown={(e) => { e.preventDefault(); if(powerups?.bomb>0){ updateQuestProgress('use_bomb'); setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, bomb: p.bomb-1})); setTimeout(()=>submitAnswer(e), 100); } }} disabled={powerups?.bomb <= 0} className="flex items-center gap-1.5 lg:gap-2 bg-rose-950 border border-rose-500 text-rose-300 px-3 py-2 lg:px-4 lg:py-2.5 rounded-xl font-bold text-[10px] lg:text-sm disabled:opacity-50 select-none shadow-[0_4px_0_rgb(136,19,55)] active:translate-y-1 active:shadow-none transition-all">
+                                                    <Bomb className="w-3 h-3 lg:w-4 lg:h-4 text-rose-400"/> Bom ({powerups?.bomb || 0})
+                                                </button>
+                                            </div>
+                                            
+                                            <div className="mt-auto relative z-10 w-full flex-1 flex flex-col justify-end min-h-0">
+                                                {renderNumpad(inputAnswer, setInputAnswer, submitAnswer, false, false)}
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="bg-white rounded-2xl md:rounded-3xl p-3 md:p-6 shadow-2xl w-[95%] max-w-sm md:max-w-lg border-2 md:border-4 border-gray-200 flex flex-col justify-center shrink-0">
-                                            <div className="flex justify-between items-center mb-3 md:mb-6">
-                                                <button onPointerDown={(e) => { e.preventDefault(); setSelectedBlock(null); }} className="text-gray-400 bg-gray-100 p-2 md:p-3 rounded-full hover:bg-gray-200 select-none"><ArrowLeft className="w-5 h-5 md:w-6 md:h-6"/></button>
-                                                <div className="text-2xl sm:text-3xl md:text-5xl font-black text-gray-800 tracking-wider text-center flex-1">
-                                                    {selectedBlock.q.text} = <span className={`inline-block min-w-[50px] md:min-w-[80px] text-center border-b-2 md:border-b-4 pb-0.5 md:pb-1 ${feedback === 'wrong' ? 'border-red-500 text-red-500' : 'border-blue-500 text-blue-600'}`}>{inputAnswer || '?'}</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex justify-center gap-2 md:gap-4 mb-3 md:mb-6">
-                                                <button onPointerDown={(e) => { e.preventDefault(); if(powerups?.hint>0){ setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, hint: p.hint-1}))} }} disabled={powerups?.hint <= 0} className="flex items-center gap-1 md:gap-2 bg-green-100 text-green-700 px-3 md:px-4 py-2 md:py-2 rounded-full font-bold text-[10px] md:text-sm disabled:opacity-50 select-none">
-                                                    <Lightbulb className="w-3 h-3 md:w-4 md:h-4"/> Petunjuk ({powerups?.hint || 0})
-                                                </button>
-                                                <button onPointerDown={(e) => { e.preventDefault(); if(powerups?.bomb>0){ updateQuestProgress('use_bomb'); setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, bomb: p.bomb-1})); setTimeout(()=>submitAnswer(e), 100); } }} disabled={powerups?.bomb <= 0} className="flex items-center gap-1 md:gap-2 bg-red-100 text-red-700 px-3 md:px-4 py-2 md:py-2 rounded-full font-bold text-[10px] md:text-sm disabled:opacity-50 select-none">
-                                                    <Bomb className="w-3 h-3 md:w-4 md:h-4"/> Bom ({powerups?.bomb || 0})
-                                                </button>
-                                            </div>
-                                            {renderNumpad(inputAnswer, setInputAnswer, submitAnswer, false, true)}
+                                        <div className="flex-1 flex flex-col items-center justify-center bg-slate-800/50 rounded-[2.5rem] border-4 border-dashed border-slate-600 p-8 animate-pulse-slow">
+                                            <Search className="text-indigo-400 w-12 h-12 lg:w-16 lg:h-16 mb-4 opacity-80" />
+                                            <p className="text-center font-bold text-slate-300 text-base lg:text-lg">Sentuh blok misteri di samping<br/>untuk memecahkan segel!</p>
                                         </div>
                                     )}
                                 </div>
+
                             </div>
                         </div>
                     );
@@ -1217,8 +1244,9 @@
                     const isWin = view === 'win';
                     const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
                     return (
-                        <div className={`min-h-[100dvh] w-full flex flex-col items-center justify-start overflow-y-auto p-4 md:p-10 font-nunito ${isWin ? 'bg-green-50' : 'bg-red-50'}`}>
-                            <div className="bg-white p-6 md:p-12 rounded-[2rem] md:rounded-[3rem] shadow-2xl max-w-sm md:max-w-2xl w-full text-center border-2 md:border-4 border-gray-100 mt-10 md:my-auto shrink-0">
+                        <div className={`min-h-[100dvh] flex flex-col items-center justify-center p-4 md:p-10 font-nunito ${isWin ? 'bg-green-50' : 'bg-red-50'} overflow-y-auto`}>
+                            <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap'); .font-nunito { font-family: 'Nunito', sans-serif; }`}</style>
+                            <div className="bg-white p-6 md:p-12 rounded-[2rem] md:rounded-[3rem] shadow-2xl max-w-sm md:max-w-2xl w-full text-center border-2 md:border-4 border-gray-100 my-auto">
                                 <div className="text-6xl md:text-9xl mb-4 md:mb-8">{isWin ? '🏝️' : (timeLeft <= 0 ? '⏰' : '💥')}</div>
                                 <h2 className={`text-2xl md:text-5xl font-black mb-2 md:mb-4 ${isWin ? 'text-green-600' : 'text-red-600'}`}>
                                     {isWin ? `PULAU ${currentIsland.name.toUpperCase()} SELESAI!` : (timeLeft <= 0 ? 'WAKTU HABIS!' : 'YAH, GAGAL...')}
@@ -1234,12 +1262,12 @@
 
                                 <div className="flex flex-col md:flex-row gap-3 md:gap-4">
                                     {!isWin && (
-                                        <button onClick={handleSaveAndReplay} className="flex-1 bg-orange-500 text-white py-3 md:py-5 rounded-xl md:rounded-2xl font-black text-sm md:text-xl shadow-[0_4px_0_rgb(194,65,12)] hover:bg-orange-600 active:shadow-none active:translate-y-1 transition-all">
-                                            ULANGI LEVEL
+                                        <button onClick={handleSaveAndReplay} disabled={isSyncing} className={`flex-1 bg-orange-500 text-white py-3 md:py-5 rounded-xl md:rounded-2xl font-black text-sm md:text-xl shadow-[0_4px_0_rgb(194,65,12)] hover:bg-orange-600 active:shadow-none active:translate-y-1 transition-all ${isSyncing ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                            {isSyncing ? 'MENYIMPAN...' : 'ULANGI LEVEL'}
                                         </button>
                                     )}
-                                    <button onClick={handleSaveAndExit} className="flex-1 bg-gray-800 text-white py-3 md:py-5 rounded-xl md:rounded-2xl font-black text-sm md:text-xl shadow-[0_4px_0_rgb(17,24,39)] hover:bg-gray-900 active:shadow-none active:translate-y-1 transition-all">
-                                        KELUAR & SIMPAN
+                                    <button onClick={handleSaveAndExit} disabled={isSyncing} className={`flex-1 bg-gray-800 text-white py-3 md:py-5 rounded-xl md:rounded-2xl font-black text-sm md:text-xl shadow-[0_4px_0_rgb(17,24,39)] hover:bg-gray-900 active:shadow-none active:translate-y-1 transition-all ${isSyncing ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                        {isSyncing ? 'MENYIMPAN...' : 'KELUAR & SIMPAN'}
                                     </button>
                                 </div>
                             </div>
@@ -1248,7 +1276,7 @@
                 }
 
                 if (view === 'skin-select') {
-                    const ownedIds = userData?.ownedBatiks || [];
+                    const currentPoints = userData?.points || 0;
                     const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
                     const islandBatiks = BATIKS.filter(b => b.islandId === level);
 
@@ -1265,13 +1293,13 @@
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
                                     {islandBatiks.map(b => {
-                                        const isOwned = b.price === 0 || ownedIds.includes(b.id);
+                                        const isOwned = currentPoints >= b.price;
                                         return (
                                             <div key={b.id} 
                                                 onClick={() => { if(isOwned) startGame(b.id, level) }}
-                                                className={`p-4 md:p-6 rounded-2xl md:rounded-[2rem] border-2 md:border-4 text-left flex flex-col items-start gap-3 md:gap-4 transition-all ${isOwned ? 'bg-white border-orange-200 hover:border-orange-500 shadow-md hover:shadow-xl md:hover:-translate-y-2 cursor-pointer' : 'bg-gray-100 border-gray-200 opacity-90'}`}>
-                                                <div className="w-full aspect-[4/3] rounded-xl md:rounded-2xl bg-gray-200 overflow-hidden relative" style={{ backgroundImage: `url(${b.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-                                                    {!isOwned && <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-sm"><Lock className="w-8 h-8 md:w-12 md:h-12 text-white opacity-80"/></div>}
+                                                className={`p-4 md:p-6 rounded-2xl md:rounded-[2rem] border-2 md:border-4 text-left flex flex-col items-start gap-3 md:gap-4 transition-all ${isOwned ? 'bg-white border-indigo-200 hover:border-indigo-500 shadow-md hover:shadow-xl md:hover:-translate-y-2 cursor-pointer' : 'bg-slate-100 border-slate-200 opacity-90 grayscale'}`}>
+                                                <div className="w-full aspect-[4/3] rounded-xl md:rounded-2xl bg-gray-200 overflow-hidden relative" style={{ backgroundImage: `url("${b.bgImage}")`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                                                    {!isOwned && <div className="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-sm"><Lock className="w-8 h-8 md:w-12 md:h-12 text-white opacity-90"/></div>}
                                                 </div>
                                                 <div className="w-full flex-1 flex flex-col justify-between">
                                                     <div>
@@ -1280,19 +1308,12 @@
                                                     </div>
                                                     
                                                     {isOwned ? (
-                                                        <span className="text-xs md:text-base font-black bg-orange-100 text-orange-600 px-3 py-2 md:px-4 md:py-3 rounded-lg md:rounded-xl flex items-center justify-center w-full">Siap Pakai</span>
+                                                        <span className="text-xs md:text-base font-black bg-emerald-100 text-emerald-600 px-3 py-2 md:px-4 md:py-3 rounded-lg md:rounded-xl flex items-center justify-center w-full">Mainkan Motif</span>
                                                     ) : (
-                                                        <button 
-                                                            onClick={(e) => { e.stopPropagation(); buyBatik(b); }}
-                                                            className={`px-3 py-2 md:px-4 md:py-3 rounded-lg md:rounded-xl font-black text-xs md:text-base flex items-center justify-between w-full transition-all ${
-                                                                (userData?.points || 0) >= b.price 
-                                                                ? 'bg-amber-500 text-white hover:bg-amber-600 active:scale-95 shadow-[0_3px_0_rgb(180,83,9)] md:shadow-[0_4px_0_rgb(180,83,9)] active:shadow-none active:translate-y-1' 
-                                                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                                            }`}
-                                                        >
-                                                            <span className="flex items-center gap-1 md:gap-2"><Lock className="w-3 h-3 md:w-4 md:h-4"/> Buka Motif</span>
-                                                            <span>{b.price.toLocaleString()} Poin</span>
-                                                        </button>
+                                                        <div className="px-3 py-2 md:px-4 md:py-3 rounded-lg md:rounded-xl font-black text-xs md:text-base flex items-center justify-between w-full bg-slate-200 text-slate-500 cursor-not-allowed">
+                                                            <span className="flex items-center gap-1 md:gap-2"><Lock className="w-3 h-3 md:w-4 md:h-4"/> Terkunci</span>
+                                                            <span>Butuh {b.price.toLocaleString()} Poin</span>
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>
@@ -1307,11 +1328,29 @@
                 return <div className="p-4 text-center font-nunito">Memuat Komponen Game...</div>;
             };
 
+            // Memblokir Layar HP (Kurang dari 1024px)
+            if (isMobile) {
+                return (
+                    <div className="min-h-[100dvh] w-full bg-slate-900 flex flex-col items-center justify-center p-8 text-center font-nunito relative overflow-hidden">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.15)_0%,transparent_50%)] animate-pulse-slow pointer-events-none"></div>
+                        <div className="text-8xl mb-6 relative z-10 animate-bounce">💻</div>
+                        <h1 className="text-3xl md:text-5xl font-black text-white mb-4 relative z-10 drop-shadow-md">Layar Terlalu Kecil!</h1>
+                        <div className="bg-slate-800/80 border border-slate-700 p-6 rounded-2xl max-w-lg relative z-10 backdrop-blur-sm shadow-2xl">
+                            <p className="text-indigo-200 text-lg md:text-xl font-bold">
+                                <b>Batik Matika</b> dirancang khusus untuk dimainkan di <span className="text-yellow-400">Papan Interaktif Digital</span> atau <span className="text-yellow-400">Laptop / PC</span> agar visual petualangan terlihat maksimal.
+                                <br/><br/>
+                                Silakan buka game ini di perangkat dengan layar yang lebih lebar!
+                            </p>
+                        </div>
+                    </div>
+                );
+            }
+
             return (
                 <React.Fragment>
                     {dailyPopup.show && (
                         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-                            <div className="bg-white rounded-2xl md:rounded-[2rem] p-5 md:p-8 max-w-sm md:max-w-md w-full text-center shadow-2xl transform transition-all animate-bounce-in border-2 md:border-4 border-amber-200">
+                            <div className="bg-white rounded-[2rem] p-5 md:p-8 max-w-sm md:max-w-md w-full text-center shadow-2xl transform transition-all animate-bounce-in border-2 md:border-4 border-amber-200">
                                 <div className="text-5xl md:text-7xl mb-1 md:mb-2">🎁</div>
                                 <h2 className="text-2xl md:text-4xl font-black text-amber-500 mb-1 md:mb-2">Hadiah Harian!</h2>
                                 <p className="text-gray-600 font-bold text-xs md:text-base mb-3 md:mb-4">Terima kasih sudah kembali belajar hari ini.</p>
