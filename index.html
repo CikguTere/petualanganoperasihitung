@@ -334,7 +334,17 @@
             const [showCard, setShowCard] = useState(false); 
             const [showCardInstruction, setShowCardInstruction] = useState(false);
             
-            // --- Mobile Blocker State ---
+            // --- Mobile/Device Blocker State ---
+            const [isDeviceSupported, setIsDeviceSupported] = useState(window.innerWidth >= 1024);
+
+            useEffect(() => {
+                const handleResize = () => {
+                    setIsDeviceSupported(window.innerWidth >= 1024);
+                };
+                window.addEventListener('resize', handleResize);
+                return () => window.removeEventListener('resize', handleResize);
+            }, []);
+
             const [isMobile, setIsMobile] = useState(window.innerWidth < 300);
             
             // --- State Carousel Pakaian Batik ---
@@ -1012,6 +1022,25 @@
             };
 
             const renderView = () => {
+                // Layar Peringatan Pemblokiran Perangkat Kecil (HP/Tablet)
+                if (!isDeviceSupported) {
+                    return (
+                        <div className="min-h-screen w-full bg-slate-900 flex flex-col items-center justify-center p-6 text-center font-nunito relative overflow-hidden">
+                            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1590341328520-22e37e90c8a6?auto=format&fit=crop&q=80&w=1000')] bg-cover bg-center opacity-20 pointer-events-none mix-blend-overlay"></div>
+                            <div className="relative z-10 bg-slate-800/90 p-8 rounded-[2rem] border-4 border-rose-500/50 max-w-lg shadow-[0_0_50px_rgba(244,63,94,0.3)] backdrop-blur-md animate-bounce-in">
+                                <div className="text-7xl mb-4 drop-shadow-lg">🖥️</div>
+                                <h2 className="text-2xl md:text-3xl font-black text-rose-400 mb-3 uppercase tracking-widest drop-shadow-md">Layar Terlalu Kecil</h2>
+                                <p className="text-slate-200 font-bold text-base md:text-lg mb-4">
+                                    Maaf, game ini dirancang khusus untuk dimainkan di <strong className="text-emerald-400">Laptop, PC, atau Papan Interaktif Digital</strong> demi pengalaman belajar yang maksimal.
+                                </p>
+                                <p className="text-slate-400 text-sm font-bold bg-slate-900/50 p-3 rounded-xl border border-slate-700">
+                                    Silakan buka kembali tautan ini menggunakan perangkat dengan layar yang lebih besar (Minimal lebar 1024px).
+                                </p>
+                            </div>
+                        </div>
+                    );
+                }
+
                 if (view === 'loading') {
                     return <div className="min-h-screen bg-slate-900 flex items-center justify-center font-nunito"><div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-500"></div></div>;
                 }
@@ -1019,11 +1048,11 @@
                 if (view === 'landing') {
                     const handlePlayClick = () => {
                         triggerAudio();
-                        if (window.innerWidth < 1024) setShowOrientationPrompt(true);
-                        else setView('login');
+                        setView('login'); // Langsung login, tidak perlu pop-up orientasi karena HP sudah diblokir
                     };
                     return (
-                        <div className="min-h-screen w-full flex flex-col items-center justify-end p-6 md:p-10 font-nunito bg-cover bg-center bg-no-repeat relative overflow-y-auto" style={{ backgroundImage: "url('https://github.com/user-attachments/assets/eea7c0b5-3b65-4199-8efd-9aa7c27a64c9')" }}>
+                        // Perbaikan: bg-center diganti ke bg-top agar gambar atas tidak terpotong
+                        <div className="min-h-screen w-full flex flex-col items-center justify-end p-6 md:p-10 font-nunito bg-cover bg-top bg-no-repeat relative overflow-y-auto" style={{ backgroundImage: "url('https://github.com/user-attachments/assets/eea7c0b5-3b65-4199-8efd-9aa7c27a64c9')" }}>
                             <FullscreenButton />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent pointer-events-none"></div>
                             <button onClick={handlePlayClick} className="relative z-10 mb-20 sm:mb-24 md:mb-20 px-10 sm:px-12 md:px-16 py-3 sm:py-4 md:py-6 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white rounded-full font-black text-2xl sm:text-3xl md:text-5xl shadow-[0_6px_0_rgb(180,83,9),0_15px_30px_rgba(251,191,36,0.5)] md:shadow-[0_8px_0_rgb(180,83,9),0_15px_40px_rgba(251,191,36,0.6)] active:shadow-[0_0px_0_rgb(180,83,9)] active:translate-y-1 md:active:translate-y-2 transition-all transform hover:scale-105 animate-bounce flex items-center gap-3 md:gap-4 border-2 md:border-4 border-orange-300/50">
@@ -1035,7 +1064,8 @@
 
                 if (view === 'login') {
                     return (
-                        <div className="min-h-screen flex flex-col justify-center items-center p-4 md:p-8 font-nunito relative overflow-y-auto" style={{ backgroundImage: "url('https://github.com/user-attachments/assets/eea7c0b5-3b65-4199-8efd-9aa7c27a64c9')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                        // Perbaikan: backgroundPosition center diganti ke top
+                        <div className="min-h-screen flex flex-col justify-center items-center p-4 md:p-8 font-nunito relative overflow-y-auto" style={{ backgroundImage: "url('https://github.com/user-attachments/assets/eea7c0b5-3b65-4199-8efd-9aa7c27a64c9')", backgroundSize: 'cover', backgroundPosition: 'top' }}>
                             <div className="absolute inset-0 bg-black/80 backdrop-blur-md pointer-events-none"></div>
                             <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-500/20 via-transparent to-transparent pointer-events-none"></div>
                             <FullscreenButton />
@@ -1684,7 +1714,8 @@
                     const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
 
                     return (
-                        <div className="min-h-screen flex flex-col items-center justify-center p-4 md:p-10 font-nunito bg-cover bg-center bg-no-repeat relative overflow-y-auto" style={{ backgroundImage: "url('https://github.com/user-attachments/assets/eea7c0b5-3b65-4199-8efd-9aa7c27a64c9')" }}>
+                        // Perbaikan: bg-center diganti ke bg-top
+                        <div className="min-h-screen flex flex-col items-center justify-center p-4 md:p-10 font-nunito bg-cover bg-top bg-no-repeat relative overflow-y-auto" style={{ backgroundImage: "url('https://github.com/user-attachments/assets/eea7c0b5-3b65-4199-8efd-9aa7c27a64c9')" }}>
                             <div className="absolute inset-0 bg-black/60 pointer-events-none"></div>
                             <div className="bg-slate-900/90 backdrop-blur-md p-6 md:p-12 rounded-[2rem] md:rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] max-w-sm md:max-w-2xl w-full text-center border-2 md:border-4 border-slate-700 relative z-10 animate-bounce-in my-auto">
                                 <div className="text-6xl md:text-9xl mb-4 md:mb-6">{isWin ? '🏆' : (timeLeft <= 0 ? '⏰' : '💥')}</div>
