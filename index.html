@@ -1182,20 +1182,20 @@
                                         <button onClick={() => setView('map')} className="flex-1 h-32 md:h-[150px] bg-gradient-to-br from-emerald-500 to-teal-700 p-2 md:p-4 rounded-2xl md:rounded-[2rem] text-white shadow-[0_6px_0_rgb(4,120,87),0_10px_20px_rgba(16,185,129,0.4)] active:translate-y-2 active:shadow-[0_0px_0_rgb(4,120,87)] transition-all flex flex-col items-center justify-center relative overflow-hidden group border border-emerald-400/50 hover:scale-[1.02]">
                                             <div className="absolute -right-4 -bottom-4 opacity-20 group-hover:scale-110 transition-transform duration-700"><MapIcon size={100} /></div>
                                             <div className="w-8 h-8 md:w-12 md:h-12 bg-white/20 rounded-xl flex items-center justify-center mb-1.5 backdrop-blur-md shadow-inner border border-white/30"><Play fill="currentColor" className="w-4 h-4 md:w-6 md:h-6" /></div>
-                                            <h3 className="text-xs md:text-xl font-black drop-shadow-md tracking-wide">Petualangan</h3>
+                                            <h3 className="text-sm md:text-lg lg:text-xl font-black drop-shadow-md leading-tight">Petualangan</h3>
                                             <p className="font-bold text-emerald-100 text-[8px] md:text-[10px] mt-0.5 opacity-90 hidden sm:block">Mulai Misi Utama</p>
                                         </button>
                                         <button onClick={() => setView('multiplayer-setup')} className="flex-1 h-32 md:h-[150px] bg-gradient-to-br from-blue-500 to-indigo-700 p-2 md:p-4 rounded-2xl md:rounded-[2rem] text-white shadow-[0_6px_0_rgb(55,48,163),0_10px_20px_rgba(59,130,246,0.4)] active:translate-y-2 active:shadow-[0_0px_0_rgb(55,48,163)] transition-all flex flex-col items-center justify-center relative overflow-hidden group border border-blue-400/50 hover:scale-[1.02]">
                                             <div className="absolute -left-4 -bottom-4 opacity-20 group-hover:scale-110 transition-transform duration-700"><Swords size={90} /></div>
                                             <div className="w-8 h-8 md:w-12 md:h-12 bg-white/20 rounded-xl flex items-center justify-center mb-1.5 backdrop-blur-md shadow-inner border border-white/30"><Users fill="currentColor" className="w-4 h-4 md:w-6 md:h-6" /></div>
-                                            <h3 className="text-xs md:text-xl font-black drop-shadow-md tracking-wide">Mode Duel</h3>
+                                            <h3 className="text-sm md:text-lg lg:text-xl font-black drop-shadow-md leading-tight">Mode Duel</h3>
                                             <p className="font-bold text-indigo-100 text-[8px] md:text-[10px] mt-0.5 opacity-90 hidden sm:block">Tantang Temanmu</p>
                                         </button>
                                         <button onClick={() => setView('quests')} className="flex-1 h-32 md:h-[150px] bg-gradient-to-br from-cyan-500 to-blue-700 p-2 md:p-4 rounded-2xl md:rounded-[2rem] text-white shadow-[0_6px_0_rgb(30,58,138),0_10px_20px_rgba(6,182,212,0.4)] active:translate-y-2 active:shadow-[0_0px_0_rgb(30,58,138)] transition-all flex flex-col items-center justify-center relative overflow-hidden group border border-cyan-400/50 hover:scale-[1.02]">
                                             {userData?.quests?.some(q => q.progress >= q.target && !q.claimed) && <div className="absolute top-2 right-2 md:top-3 md:right-3 w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full border-2 border-white animate-bounce shadow-lg z-20"></div>}
                                             <div className="absolute -right-4 -top-4 opacity-20 group-hover:scale-110 transition-transform duration-700"><CalendarCheck size={90} /></div>
                                             <div className="w-8 h-8 md:w-12 md:h-12 bg-white/20 rounded-xl flex items-center justify-center mb-1.5 backdrop-blur-md shadow-inner border border-white/30"><CalendarCheck fill="currentColor" className="w-4 h-4 md:w-6 md:h-6" /></div>
-                                            <h3 className="text-xs md:text-xl font-black drop-shadow-md tracking-wide">Misi Harian</h3>
+                                            <h3 className="text-sm md:text-lg lg:text-xl font-black drop-shadow-md leading-tight">Misi Harian</h3>
                                             <p className="font-bold text-cyan-100 text-[8px] md:text-[10px] mt-0.5 opacity-90 hidden sm:block">Klaim Hadiah</p>
                                         </button>
                                     </div>
