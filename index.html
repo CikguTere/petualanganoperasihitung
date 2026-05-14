@@ -12,8 +12,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
-
-    <!-- HAPUS SCRIPT THREE.JS YANG LAMA DI SINI -->
     
     <style>
         /* Base Styling & Optimasi Sentuhan untuk Layar Interaktif */
@@ -23,7 +21,6 @@
             padding: 0;
             background-color: #0f172a; /* slate-900 */
             -webkit-tap-highlight-color: transparent;
-            overflow: hidden; /* Mencegah scroll global */
         }
         .font-nunito {
             font-family: 'Nunito', sans-serif;
@@ -159,7 +156,6 @@
             const hairHighlight = isBoy ? '#374151' : '#8b5a33';
             const skirtColor = '#d91616';
 
-            // Proxy URL untuk mencegah error CORS saat memuat pola Batik
             const finalUrl = clothesPattern && clothesPattern.includes('github.com') && !clothesPattern.includes('wsrv.nl') 
                 ? `https://wsrv.nl/?url=${encodeURIComponent(clothesPattern)}` 
                 : clothesPattern;
@@ -176,7 +172,6 @@
                 <svg viewBox="0 0 200 400" className="w-full h-full drop-shadow-[0_15px_25px_rgba(0,0,0,0.6)]">
                     <defs>
                         {patternDef}
-                        {/* Gradien untuk efek kedalaman 3D / Gaya Pixar */}
                         <radialGradient id="skinGrad" cx="40%" cy="40%" r="60%">
                             <stop offset="0%" stopColor={skinBase} />
                             <stop offset="100%" stopColor={skinShadow} />
@@ -199,105 +194,73 @@
                     
                     {isBoy ? (
                         <g>
-                            {/* Kaki Kiri & Kanan (Kulit dengan bayangan) */}
                             <path d="M 65 280 L 70 360 L 90 360 L 90 280 Z" fill="url(#skinGrad)" />
                             <path d="M 135 280 L 130 360 L 110 360 L 110 280 Z" fill="url(#skinGrad)" />
                             
-                            {/* Celana Pendek SD (Merah) dengan volume 3D */}
                             <path d="M 70 220 L 55 290 L 95 290 L 95 220 Z" fill={skirtColor} />
                             <path d="M 130 220 L 145 290 L 105 290 L 105 220 Z" fill={skirtColor} />
-                            <path d="M 55 290 Q 100 305 145 290 L 145 285 Q 100 295 55 285 Z" fill="black" opacity="0.2" /> {/* Shadow Lipatan Bawah Celana */}
+                            <path d="M 55 290 Q 100 305 145 290 L 145 285 Q 100 295 55 285 Z" fill="black" opacity="0.2" /> 
                             
-                            {/* Sepatu Sneakers */}
                             <path d="M 50 360 Q 70 345 90 360 L 90 375 Q 75 385 50 375 Z" fill="#111" />
                             <path d="M 150 360 Q 130 345 110 360 L 110 375 Q 125 385 150 375 Z" fill="#111" />
-                            <path d="M 55 372 L 85 372" stroke="#fff" strokeWidth="2" strokeLinecap="round" /> {/* Detail Tali */}
+                            <path d="M 55 372 L 85 372" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
                             <path d="M 115 372 L 145 372" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
                             
-                            {/* Lengan Bervolume */}
                             <path d="M 55 120 L 30 210 L 45 215 L 70 130 Z" fill="url(#skinGrad)" rx="10" />
                             <path d="M 145 120 L 170 210 L 155 215 L 130 130 Z" fill="url(#skinGrad)" rx="10" />
                             
-                            {/* Leher */}
                             <rect x="90" y="90" width="20" height="30" fill={skinShadow} />
                             
-                            {/* Baju Atasan / Batik */}
                             <path d="M 65 110 Q 100 125 135 110 L 155 145 L 140 155 L 135 230 Q 100 245 65 230 L 60 155 L 45 145 Z" fill={clothesFill} />
-                            <path d="M 65 110 Q 100 125 135 110 L 155 145 L 140 155 L 135 230 Q 100 245 65 230 L 60 155 L 45 145 Z" fill="url(#torsoShadow)" /> {/* Shading Gelap Sisi Baju */}
+                            <path d="M 65 110 Q 100 125 135 110 L 155 145 L 140 155 L 135 230 Q 100 245 65 230 L 60 155 L 45 145 Z" fill="url(#torsoShadow)" />
                             
-                            {/* Telinga */}
                             <circle cx="62" cy="65" r="10" fill={skinShadow} />
                             <circle cx="138" cy="65" r="10" fill={skinShadow} />
                             
-                            {/* Kepala Bulat Pixar */}
                             <circle cx="100" cy="65" r="38" fill="url(#skinGrad)" />
                             
-                            {/* Pipi Merona */}
                             <circle cx="75" cy="75" r="12" fill="url(#cheekGrad)" />
                             <circle cx="125" cy="75" r="12" fill="url(#cheekGrad)" />
                             
-                            {/* Mata Besar Bersinar */}
                             <circle cx="82" cy="58" r="6" fill="#111" />
                             <circle cx="118" cy="58" r="6" fill="#111" />
-                            <circle cx="80" cy="56" r="2.5" fill="#fff" /> {/* Highlight Mata */}
+                            <circle cx="80" cy="56" r="2.5" fill="#fff" />
                             <circle cx="116" cy="56" r="2.5" fill="#fff" />
                             
-                            {/* Hidung & Senyum Lebar */}
                             <path d="M 100 68 Q 105 72 100 76" stroke={skinShadow} strokeWidth="3" fill="none" strokeLinecap="round" />
                             <path d="M 85 85 Q 100 100 115 85" stroke="#111" strokeWidth="2.5" fill="none" strokeLinecap="round" />
                             
-                            {/* Rambut Spiky (Jabrik) Keren Anak Laki-laki */}
-                            <path d="M 62 65 
-                                     Q 60 40 70 30 
-                                     L 75 15 L 85 25 
-                                     L 95 10 L 105 25 
-                                     L 115 15 L 125 30 
-                                     Q 138 40 138 65 
-                                     Q 100 45 62 65 Z" 
-                                  fill="url(#hairGrad)" stroke="#1f2937" strokeWidth="1" strokeLinejoin="round" />
+                            <path d="M 62 65 Q 60 40 70 30 L 75 15 L 85 25 L 95 10 L 105 25 L 115 15 L 125 30 Q 138 40 138 65 Q 100 45 62 65 Z" fill="url(#hairGrad)" stroke="#1f2937" strokeWidth="1" strokeLinejoin="round" />
                         </g>
                     ) : (
                         <g>
-                            {/* Rambut Belakang Gadis (Coklat, Sebahu) */}
                             <path d="M 50 65 C 30 140, 35 180, 70 185 L 130 185 C 165 180, 170 140, 150 65 Z" fill="url(#hairGrad)" />
-                            
-                            {/* Kaki Kiri & Kanan */}
                             <path d="M 80 230 L 75 360 L 90 360 L 95 230 Z" fill="url(#skinGrad)" />
                             <path d="M 120 230 L 125 360 L 110 360 L 105 230 Z" fill="url(#skinGrad)" />
                             
-                            {/* Sepatu Gadis SD (Merah & Tali Putih) */}
                             <path d="M 55 360 Q 75 350 90 360 L 90 375 Q 80 380 55 375 Z" fill={skirtColor} />
                             <path d="M 145 360 Q 125 350 110 360 L 110 375 Q 120 380 145 375 Z" fill={skirtColor} />
                             <path d="M 65 362 L 80 362" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
                             <path d="M 120 362 L 135 362" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
                             
-                            {/* Lengan */}
                             <path d="M 65 120 L 40 205 L 55 210 L 75 130 Z" fill="url(#skinGrad)" rx="8" />
                             <path d="M 135 120 L 160 205 L 145 210 L 125 130 Z" fill="url(#skinGrad)" rx="8" />
                             
-                            {/* Leher */}
                             <rect x="92" y="90" width="16" height="30" fill={skinShadow} />
                             
-                            {/* Rok Pendek SD (Merah) */}
                             <path d="M 75 200 L 125 200 L 142 265 Q 100 280 58 265 Z" fill={skirtColor} />
-                            <path d="M 75 200 L 125 200 L 142 265 Q 100 280 58 265 Z" fill="black" opacity="0.2" /> {/* Shadow Lipatan Rok */}
+                            <path d="M 75 200 L 125 200 L 142 265 Q 100 280 58 265 Z" fill="black" opacity="0.2" /> 
                             
-                            {/* Batik Blouse dengan Volume 3D */}
                             <path d="M 70 115 Q 100 125 130 115 L 145 150 L 130 155 L 125 210 Q 100 225 75 210 L 70 155 L 55 150 Z" fill={clothesFill} />
                             <path d="M 70 115 Q 100 125 130 115 L 145 150 L 130 155 L 125 210 Q 100 225 75 210 L 70 155 L 55 150 Z" fill="url(#torsoShadow)" /> 
                             
-                            {/* Telinga */}
                             <circle cx="64" cy="65" r="9" fill={skinShadow} />
                             <circle cx="136" cy="65" r="9" fill={skinShadow} />
-
-                            {/* Kepala Bulat Pixar */}
                             <circle cx="100" cy="65" r="36" fill="url(#skinGrad)" />
                             
-                            {/* Pipi Merona */}
                             <circle cx="75" cy="73" r="11" fill="url(#cheekGrad)" />
                             <circle cx="125" cy="73" r="11" fill="url(#cheekGrad)" />
                             
-                            {/* Mata Bersinar & Bulu Mata */}
                             <circle cx="82" cy="58" r="6" fill="#111" />
                             <circle cx="118" cy="58" r="6" fill="#111" />
                             <circle cx="80" cy="56" r="2.5" fill="#fff" />
@@ -305,11 +268,9 @@
                             <path d="M 76 54 Q 82 50 88 54" stroke="#111" strokeWidth="2.5" fill="none" strokeLinecap="round" />
                             <path d="M 112 54 Q 118 50 124 54" stroke="#111" strokeWidth="2.5" fill="none" strokeLinecap="round" />
                             
-                            {/* Hidung & Senyum Manis */}
                             <path d="M 100 68 Q 105 72 100 76" stroke={skinShadow} strokeWidth="2.5" fill="none" strokeLinecap="round" />
                             <path d="M 88 85 Q 100 97 112 85" stroke="#d91616" strokeWidth="3" fill="none" strokeLinecap="round" />
                             
-                            {/* Poni Depan Mengkilap */}
                             <path d="M 64 65 C 60 5, 140 5, 136 65 C 136 35, 64 35, 64 65 Z" fill="url(#hairGrad)" />
                         </g>
                     )}
@@ -317,57 +278,27 @@
             );
         };
 
-        // --- PENYATUAN ILUSTRASI AVATAR (INTERAKTIF ROTASI 2.5D) ---
         const CharacterAvatar = ({ gender, clothesId, size = "large" }) => {
             const clothes = CLOTHES.find(c => c.id === clothesId) || CLOTHES[0];
             const contSize = size === "large" ? "w-56 h-64 md:w-80 md:h-96" : "w-16 h-20 md:w-24 md:h-32";
 
-            // State untuk fitur putar (Rotate)
             const [rotY, setRotY] = useState(0);
             const [isDragging, setIsDragging] = useState(false);
             const lastX = useRef(0);
 
-            const handlePointerDown = (e) => {
-                setIsDragging(true);
-                lastX.current = e.clientX;
-                e.target.setPointerCapture(e.pointerId);
-            };
-
-            const handlePointerMove = (e) => {
-                if (!isDragging) return;
-                const delta = e.clientX - lastX.current;
-                setRotY(prev => prev + delta * 0.8); // 0.8 adalah sensitivitas putaran
-                lastX.current = e.clientX;
-            };
-
-            const handlePointerUp = (e) => {
-                setIsDragging(false);
-                e.target.releasePointerCapture(e.pointerId);
-                // Membiarkan posisi putaran tersimpan agar pemain bisa mengagumi dari angle miring
-            };
+            const handlePointerDown = (e) => { setIsDragging(true); lastX.current = e.clientX; e.target.setPointerCapture(e.pointerId); };
+            const handlePointerMove = (e) => { if (!isDragging) return; const delta = e.clientX - lastX.current; setRotY(prev => prev + delta * 0.8); lastX.current = e.clientX; };
+            const handlePointerUp = (e) => { setIsDragging(false); e.target.releasePointerCapture(e.pointerId); };
 
             return (
                 <div 
                     className={`relative flex flex-col items-center justify-center animate-bounce-in ${contSize} cursor-grab active:cursor-grabbing`}
-                    style={{ perspective: '1000px' }} // Memberikan efek kedalaman 3D ruang
-                    onPointerDown={handlePointerDown}
-                    onPointerMove={handlePointerMove}
-                    onPointerUp={handlePointerUp}
-                    onPointerCancel={handlePointerUp}
+                    style={{ perspective: '1000px' }} 
+                    onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp}
                 >
-                    {/* Pembungkus 3D Rotasi */}
-                    <div 
-                        className="w-full h-full transition-transform"
-                        style={{ 
-                            transform: `rotateY(${rotY}deg)`, 
-                            transformStyle: 'preserve-3d',
-                            transitionDuration: isDragging ? '0ms' : '150ms' // Halus jika tiba-tiba dilepas
-                        }}
-                    >
+                    <div className="w-full h-full transition-transform" style={{ transform: `rotateY(${rotY}deg)`, transformStyle: 'preserve-3d', transitionDuration: isDragging ? '0ms' : '150ms' }}>
                         <Mannequin2D gender={gender} clothesColor={clothes.bgColor} clothesPattern={clothes.pattern} />
                     </div>
-
-                    {/* Petunjuk Interaksi khusus ukuran besar */}
                     {size === "large" && (
                         <div className="absolute -bottom-4 md:-bottom-8 bg-black/60 border border-white/20 text-emerald-400 font-bold text-[8px] md:text-xs px-3 py-1.5 rounded-full backdrop-blur-md animate-pulse pointer-events-none whitespace-nowrap shadow-lg">
                             👈 Geser Avatar 👉
@@ -377,7 +308,6 @@
             );
         }
 
-        // Background Berkilau Global untuk efek "Fantastis"
         const MagicalBackground = () => (
             <React.Fragment>
                 <div className="fixed inset-0 bg-[url('https://images.unsplash.com/photo-1590341328520-22e37e90c8a6?auto=format&fit=crop&q=80&w=2000')] bg-cover bg-center opacity-30 pointer-events-none mix-blend-overlay z-0"></div>
@@ -401,34 +331,24 @@
             const [isSyncing, setIsSyncing] = useState(false);
             const [dailyPopup, setDailyPopup] = useState({ show: false, streak: 0, bonus: 0, quests: [] });
             const [showOrientationPrompt, setShowOrientationPrompt] = useState(false);
-            const [showCard, setShowCard] = useState(false); // State untuk Kartu Pamer
+            const [showCard, setShowCard] = useState(false); 
             
             // --- Mobile Blocker State ---
             const [isMobile, setIsMobile] = useState(window.innerWidth < 300);
             
             // --- State Carousel Pakaian Batik ---
             const [currentClothesIndex, setCurrentClothesIndex] = useState(0);
-            const cardRef = useRef(null); // Ref pembidik elemen Kartu Download
+            const cardRef = useRef(null); 
             const [isDownloading, setIsDownloading] = useState(false);
 
-            const nextClothes = () => {
-                setCurrentClothesIndex((prev) => (prev + 1) % CLOTHES.length);
-            };
-
-            const prevClothes = () => {
-                setCurrentClothesIndex((prev) => (prev - 1 + CLOTHES.length) % CLOTHES.length);
-            };
+            const nextClothes = () => setCurrentClothesIndex((prev) => (prev + 1) % CLOTHES.length);
+            const prevClothes = () => setCurrentClothesIndex((prev) => (prev - 1 + CLOTHES.length) % CLOTHES.length);
 
             // --- Audio States ---
             const audioRef = useRef(null);
             const [isMuted, setIsMuted] = useState(false);
 
-            const triggerAudio = () => {
-                if (audioRef.current && !isMuted) {
-                    audioRef.current.play().catch(e => console.log("Audio trigger error:", e));
-                }
-            };
-            
+            const triggerAudio = () => { if (audioRef.current && !isMuted) audioRef.current.play().catch(e => console.log(e)); };
             const timerRef = useRef(null);
             
             // --- Single Player States ---
@@ -550,21 +470,20 @@
             }, []);
 
             useEffect(() => {
-                if (audioRef.current) {
-                    audioRef.current.muted = isMuted;
-                }
+                if (audioRef.current) { audioRef.current.muted = isMuted; }
             }, [isMuted]);
 
-            // --- SISTEM PENYIMPANAN LOGIKA POIN & ASET ---
+            // --- SISTEM PENYIMPANAN LOGIKA POIN & ASET (Dengan Guard Offline) ---
             const addPoints = async (amount) => {
-                if (amount <= 0 || !user || !firebaseConfig) return;
-                const db = getFirestore();
+                if (amount <= 0) return;
                 
                 const currentData = userDataRef.current || {};
                 const newTotalPoints = (currentData.points || 0) + amount;
-
                 setUserData(prev => ({ ...prev, points: newTotalPoints }));
 
+                if (!user || !firebaseConfig) return; // Guard untuk Github Pages
+                
+                const db = getFirestore();
                 const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main');
                 const pName = currentData.name || loginForm.name || 'Anonim';
                 const pSchool = currentData.school || loginForm.school || '-';
@@ -588,13 +507,13 @@
             };
 
             const deductPointsSync = async (cost, additionalData) => {
-                if (!user || !firebaseConfig) return;
-                const db = getFirestore();
                 const currentData = userDataRef.current || {};
                 const newTotalPoints = Math.max(0, (currentData.points || 0) - cost);
-
                 setUserData(prev => ({ ...prev, points: newTotalPoints, ...additionalData }));
 
+                if (!user || !firebaseConfig) return; // Guard untuk Github Pages
+                
+                const db = getFirestore();
                 const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main');
                 const pName = currentData.name || loginForm.name || 'Anonim';
                 const pSchool = currentData.school || loginForm.school || '-';
@@ -617,14 +536,16 @@
             };
 
             const saveUserData = async (newData) => {
-                if (!user || !firebaseConfig) { setUserData(prev => ({ ...prev, ...newData })); return; }
+                setUserData(prev => ({ ...prev, ...newData }));
+                
+                if (!user || !firebaseConfig) return; // Guard untuk Github Pages
+
                 const db = getFirestore();
                 try {
                     const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main');
                     const batch = writeBatch(db);
                     batch.set(profileRef, { ...newData, updatedAt: serverTimestamp() }, { merge: true });
 
-                    // Sinkronisasi data krusial ke folder publik (sebagai cadangan saat login)
                     const currentData = userDataRef.current || {};
                     const pName = currentData.name || loginForm.name || 'Anonim';
                     const pSchool = currentData.school || loginForm.school || '-';
@@ -744,12 +665,10 @@
                 const islandBatiks = BATIKS.filter(b => b.islandId === level);
                 const currentIndex = islandBatiks.findIndex(b => b.id === activeBatik.id);
                 
-                // Jika masih ada motif selanjutnya di pulau yang sama, mainkan
                 if (currentIndex >= 0 && currentIndex < islandBatiks.length - 1) {
                     const nextBatik = islandBatiks[currentIndex + 1];
                     startGame(nextBatik.id, level);
                 } else {
-                    // Jika sudah motif terakhir, kembali ke peta
                     setView('map');
                 }
             };
@@ -762,9 +681,6 @@
                 }
 
                 triggerAudio();
-
-                const db = getFirestore();
-                const pKey = getPlayerKey(loginForm.name, loginForm.school, loginForm.province);
                 
                 let recoveredPoints = 0;
                 let recoveredLevel = 1;
@@ -772,9 +688,12 @@
                 let recoveredOwnedClothes = ['polos'];
                 let recoveredGender = loginForm.gender;
 
+                // Guard jika dijalankan di Github Pages / Tanpa Konfigurasi Firebase
                 if (user && firebaseConfig) {
-                    const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', pKey);
                     try {
+                        const db = getFirestore();
+                        const pKey = getPlayerKey(loginForm.name, loginForm.school, loginForm.province);
+                        const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', pKey);
                         const docSnap = await getDoc(publicRef);
                         if (docSnap.exists()) {
                             const pastData = docSnap.data();
@@ -803,9 +722,11 @@
 
             const handleLogout = async () => {
                 if (user && firebaseConfig) {
-                    const db = getFirestore();
-                    const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main');
-                    await setDoc(profileRef, { isLoggedOut: true }, { merge: true }); 
+                    try {
+                        const db = getFirestore();
+                        const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main');
+                        await setDoc(profileRef, { isLoggedOut: true }, { merge: true }); 
+                    } catch(e) { console.log("Logout Sync Error", e); }
                 }
                 setUserData(null);
                 setLoginForm({ name: '', province: '', school: '', gender: 'boy' });
@@ -813,21 +734,16 @@
                 setView('landing');
             };
 
-            // Fungsi untuk mengunduh DOM ke format PNG resolusi tinggi
             const handleDownloadCard = async () => {
                 if (!cardRef.current) return;
                 setIsDownloading(true);
                 try {
                     const canvas = await window.html2canvas(cardRef.current, {
-                        useCORS: true,
-                        allowTaint: true,
-                        scale: 3, // Skala 3x agar teks tajam saat didownload
-                        backgroundColor: null
+                        useCORS: true, allowTaint: true, scale: 3, backgroundColor: null
                     });
                     const image = canvas.toDataURL("image/png");
                     const link = document.createElement('a');
                     link.href = image;
-                    // Format penamaan file otomatis berdasarkan nama pemain
                     link.download = `Kartu_Pahlawan_Batik_${userData.name.replace(/\s+/g, '_')}.png`;
                     link.click();
                 } catch (err) {
@@ -852,23 +768,19 @@
                     if (!document.fullscreenElement) {
                         await document.documentElement.requestFullscreen().catch(err => console.log(err));
                         setIsFullscreen(true);
-                        // Mengunci rotasi layar ke Landscape jika didukung browser
                         if (window.screen && window.screen.orientation && window.screen.orientation.lock) {
-                            await window.screen.orientation.lock('landscape').catch(e => console.log("Orientation lock tidak didukung:", e));
+                            await window.screen.orientation.lock('landscape').catch(e => console.log(e));
                         }
                     } else {
                         if (document.exitFullscreen) { 
                             await document.exitFullscreen().catch(err => console.log(err)); 
                             setIsFullscreen(false); 
-                            // Membuka kembali kunci rotasi layar
                             if (window.screen && window.screen.orientation && window.screen.orientation.unlock) {
                                 window.screen.orientation.unlock();
                             }
                         }
                     }
-                } catch (err) {
-                    console.log(err);
-                }
+                } catch (err) { console.log(err); }
             };
 
             const generateQuestion = (lvl) => {
@@ -906,9 +818,6 @@
                     id: i, active: true, isSpecial: Math.random() > 0.85, q: generateQuestion(lvl)
                 }));
             };
-
-            // Sistem auto-upgrade motif batik di tengah permainan telah dihapus
-            // agar pemain bisa memainkan latar belakang sesuai dengan motif yang mereka klik.
 
             useEffect(() => {
                 if (view === 'game') {
@@ -1096,22 +1005,17 @@
 
             const renderView = () => {
                 if (view === 'loading') {
-                    return <div className="min-h-[100dvh] bg-slate-900 flex items-center justify-center font-nunito"><div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-500"></div></div>;
+                    return <div className="min-h-screen bg-slate-900 flex items-center justify-center font-nunito"><div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-500"></div></div>;
                 }
 
                 if (view === 'landing') {
                     const handlePlayClick = () => {
                         triggerAudio();
-                        // Jika mendeteksi layar HP atau Tablet (< 1024px), tampilkan pop-up pengunci layar
-                        if (window.innerWidth < 1024) {
-                            setShowOrientationPrompt(true);
-                        } else {
-                            setView('login');
-                        }
+                        if (window.innerWidth < 1024) setShowOrientationPrompt(true);
+                        else setView('login');
                     };
-
                     return (
-                        <div className="min-h-[100dvh] w-full flex flex-col items-center justify-end p-6 md:p-10 font-nunito bg-cover bg-center bg-no-repeat relative" style={{ backgroundImage: "url('https://github.com/user-attachments/assets/eea7c0b5-3b65-4199-8efd-9aa7c27a64c9')" }}>
+                        <div className="min-h-screen w-full flex flex-col items-center justify-end p-6 md:p-10 font-nunito bg-cover bg-center bg-no-repeat relative overflow-y-auto" style={{ backgroundImage: "url('https://github.com/user-attachments/assets/eea7c0b5-3b65-4199-8efd-9aa7c27a64c9')" }}>
                             <FullscreenButton />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent pointer-events-none"></div>
                             <button onClick={handlePlayClick} className="relative z-10 mb-20 sm:mb-24 md:mb-20 px-10 sm:px-12 md:px-16 py-3 sm:py-4 md:py-6 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white rounded-full font-black text-2xl sm:text-3xl md:text-5xl shadow-[0_6px_0_rgb(180,83,9),0_15px_30px_rgba(251,191,36,0.5)] md:shadow-[0_8px_0_rgb(180,83,9),0_15px_40px_rgba(251,191,36,0.6)] active:shadow-[0_0px_0_rgb(180,83,9)] active:translate-y-1 md:active:translate-y-2 transition-all transform hover:scale-105 animate-bounce flex items-center gap-3 md:gap-4 border-2 md:border-4 border-orange-300/50">
@@ -1123,49 +1027,41 @@
 
                 if (view === 'login') {
                     return (
-                        <div className="min-h-[100dvh] flex flex-col justify-center items-center p-4 md:p-8 font-nunito relative overflow-y-auto" style={{ backgroundImage: "url('https://github.com/user-attachments/assets/eea7c0b5-3b65-4199-8efd-9aa7c27a64c9')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                        <div className="min-h-screen flex flex-col justify-center items-center p-4 md:p-8 font-nunito relative overflow-y-auto" style={{ backgroundImage: "url('https://github.com/user-attachments/assets/eea7c0b5-3b65-4199-8efd-9aa7c27a64c9')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
                             <div className="absolute inset-0 bg-black/80 backdrop-blur-md pointer-events-none"></div>
                             <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-500/20 via-transparent to-transparent pointer-events-none"></div>
                             <FullscreenButton />
 
-                            {/* Kartu UI Karakter Kreator (RPG Style) */}
-                            <div className="bg-slate-900/90 backdrop-blur-2xl border-2 md:border-4 border-emerald-500/40 p-5 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-[0_0_80px_rgba(16,185,129,0.2)] w-full max-w-4xl relative z-10 transition-all animate-bounce-in flex flex-col md:flex-row gap-6 md:gap-10">
+                            <div className="bg-slate-900/90 backdrop-blur-2xl border-2 md:border-4 border-emerald-500/40 p-5 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-[0_0_80px_rgba(16,185,129,0.2)] w-full max-w-4xl relative z-10 transition-all animate-bounce-in flex flex-col md:flex-row gap-6 md:gap-10 my-10">
                                 
-                                {/* Dekorasi Glowing Sudut */}
                                 <div className="absolute -top-10 -left-10 w-32 h-32 bg-emerald-500/30 rounded-full blur-3xl pointer-events-none"></div>
                                 <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-amber-500/30 rounded-full blur-3xl pointer-events-none"></div>
                                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-1.5 md:h-2 bg-gradient-to-r from-transparent via-emerald-400 to-transparent opacity-70"></div>
 
-                                {/* BAGIAN KIRI: Pemilihan Avatar */}
+                                {/* Kiri: Pemilihan Avatar */}
                                 <div className="w-full md:w-5/12 flex flex-col items-center justify-center shrink-0">
                                     <div className="bg-slate-950/60 border border-slate-700/50 rounded-[2rem] p-4 md:p-6 w-full shadow-inner flex flex-col items-center relative">
                                         <div className="absolute -top-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-[10px] md:text-xs px-4 py-1 rounded-full uppercase tracking-widest shadow-lg border border-orange-300">Pilih Jagoanmu</div>
                                         
                                         <div className="flex w-full gap-3 mt-4">
-                                            {/* Kartu Laki-laki */}
                                             <button type="button" onClick={() => setLoginForm({...loginForm, gender: 'boy'})} 
                                                 className={`flex-1 flex flex-col items-center justify-end h-32 md:h-48 rounded-xl border-2 transition-all relative overflow-hidden group 
                                                     ${loginForm.gender === 'boy' ? 'border-amber-400 bg-gradient-to-t from-amber-500/30 to-slate-800 scale-105 shadow-[0_0_25px_rgba(245,158,11,0.4)] z-10' : 'border-slate-700 bg-slate-800/80 opacity-60 hover:opacity-100 grayscale hover:grayscale-0 scale-95'}`}>
-                                                <div className="absolute inset-0 flex items-center justify-center pt-6 pointer-events-none">
-                                                    <CharacterAvatar gender="boy" clothesId="polos" size="small" />
-                                                </div>
+                                                <div className="absolute inset-0 flex items-center justify-center pt-6 pointer-events-none"><CharacterAvatar gender="boy" clothesId="polos" size="small" /></div>
                                                 <div className={`w-full py-1.5 md:py-2 text-[10px] md:text-sm font-black uppercase tracking-widest backdrop-blur-sm z-10 transition-colors ${loginForm.gender === 'boy' ? 'bg-amber-500 text-white' : 'bg-slate-900/80 text-slate-400 group-hover:text-white'}`}>Laki-laki</div>
                                             </button>
 
-                                            {/* Kartu Perempuan */}
                                             <button type="button" onClick={() => setLoginForm({...loginForm, gender: 'girl'})} 
                                                 className={`flex-1 flex flex-col items-center justify-end h-32 md:h-48 rounded-xl border-2 transition-all relative overflow-hidden group 
                                                     ${loginForm.gender === 'girl' ? 'border-pink-400 bg-gradient-to-t from-pink-500/30 to-slate-800 scale-105 shadow-[0_0_25px_rgba(236,72,153,0.4)] z-10' : 'border-slate-700 bg-slate-800/80 opacity-60 hover:opacity-100 grayscale hover:grayscale-0 scale-95'}`}>
-                                                <div className="absolute inset-0 flex items-center justify-center pt-6 pointer-events-none">
-                                                    <CharacterAvatar gender="girl" clothesId="polos" size="small" />
-                                                </div>
+                                                <div className="absolute inset-0 flex items-center justify-center pt-6 pointer-events-none"><CharacterAvatar gender="girl" clothesId="polos" size="small" /></div>
                                                 <div className={`w-full py-1.5 md:py-2 text-[10px] md:text-sm font-black uppercase tracking-widest backdrop-blur-sm z-10 transition-colors ${loginForm.gender === 'girl' ? 'bg-pink-500 text-white' : 'bg-slate-900/80 text-slate-400 group-hover:text-white'}`}>Perempuan</div>
                                             </button>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* BAGIAN KANAN: Formulir Data */}
+                                {/* Kanan: Formulir */}
                                 <div className="w-full md:w-7/12 flex flex-col justify-center relative z-10">
                                     <div className="mb-6 md:mb-8 text-center md:text-left">
                                         <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-emerald-400 to-cyan-500 mb-1 md:mb-2 drop-shadow-md uppercase italic tracking-wider transform -skew-x-6">ID PETUALANG</h1>
@@ -1173,32 +1069,21 @@
                                     </div>
 
                                     <form onSubmit={handleLogin} className="space-y-4 md:space-y-5">
-                                        {/* Input Nama */}
                                         <div className="relative group">
-                                            <div className="absolute inset-y-0 left-0 pl-4 md:pl-5 flex items-center pointer-events-none">
-                                                <User className="text-emerald-500 w-5 h-5 md:w-6 md:h-6 group-focus-within:text-emerald-300 group-focus-within:animate-bounce transition-colors" />
-                                            </div>
+                                            <div className="absolute inset-y-0 left-0 pl-4 md:pl-5 flex items-center pointer-events-none"><User className="text-emerald-500 w-5 h-5 md:w-6 md:h-6 group-focus-within:text-emerald-300 group-focus-within:animate-bounce transition-colors" /></div>
                                             <input required type="text" className="w-full pl-12 md:pl-14 pr-5 py-3 md:py-4 text-base md:text-xl bg-slate-950/60 border-2 border-slate-700 focus:border-emerald-400 focus:bg-slate-900 rounded-xl md:rounded-2xl outline-none transition-all font-bold text-white placeholder-slate-600 shadow-inner focus:ring-4 focus:ring-emerald-500/20" placeholder="Ketik Nama Panggilanmu..." value={loginForm.name} onChange={e => setLoginForm({...loginForm, name: e.target.value})} />
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-focus-within:opacity-100 transition-opacity"><Zap className="text-amber-400 w-5 h-5 md:w-6 md:h-6 animate-pulse"/></div>
                                         </div>
-
-                                        {/* Input Sekolah & Provinsi */}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
                                             <div className="relative group">
-                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                                    <School className="text-emerald-500 w-4 h-4 md:w-5 md:h-5 group-focus-within:text-emerald-300 transition-colors" />
-                                                </div>
+                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><School className="text-emerald-500 w-4 h-4 md:w-5 md:h-5 group-focus-within:text-emerald-300 transition-colors" /></div>
                                                 <input required type="text" className="w-full pl-11 md:pl-12 pr-4 py-3 text-sm md:text-base bg-slate-950/60 border-2 border-slate-700 focus:border-emerald-400 focus:bg-slate-900 rounded-xl outline-none transition-all font-bold text-white placeholder-slate-600 shadow-inner focus:ring-2 focus:ring-emerald-500/20" placeholder="Asal Sekolah (SDN...)" value={loginForm.school} onChange={e => setLoginForm({...loginForm, school: e.target.value})} />
                                             </div>
-                                            
                                             <div className="relative group">
-                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                                    <MapPin className="text-emerald-500 w-4 h-4 md:w-5 md:h-5 group-focus-within:text-emerald-300 transition-colors" />
-                                                </div>
+                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><MapPin className="text-emerald-500 w-4 h-4 md:w-5 md:h-5 group-focus-within:text-emerald-300 transition-colors" /></div>
                                                 <input required type="text" className="w-full pl-11 md:pl-12 pr-4 py-3 text-sm md:text-base bg-slate-950/60 border-2 border-slate-700 focus:border-emerald-400 focus:bg-slate-900 rounded-xl outline-none transition-all font-bold text-white placeholder-slate-600 shadow-inner focus:ring-2 focus:ring-emerald-500/20" placeholder="Provinsi / Kota..." value={loginForm.province} onChange={e => setLoginForm({...loginForm, province: e.target.value})} />
                                             </div>
                                         </div>
-
                                         <button type="submit" className="w-full mt-4 md:mt-6 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white py-4 md:py-5 rounded-xl md:rounded-2xl font-black text-lg md:text-2xl shadow-[0_6px_0_rgb(4,120,87),0_10px_20px_rgba(16,185,129,0.4)] active:shadow-[0_0px_0_rgb(4,120,87)] active:translate-y-1.5 transition-all uppercase tracking-widest flex justify-center items-center gap-3 border-2 border-emerald-300/50 transform hover:scale-[1.02]">
                                             <Play fill="currentColor" className="w-5 h-5 md:w-8 md:h-8" /> MULAI PETUALANGAN!
                                         </button>
@@ -1211,19 +1096,15 @@
 
                 if (view === 'menu') {
                     const rank = RANKS.slice().reverse().find(r => (userData?.points || 0) >= r.min) || RANKS[0];
-                    
-                    // Single Item Carousel Data
                     const currentClothes = CLOTHES[currentClothesIndex];
                     const isClothesOwned = userData?.ownedClothes?.includes(currentClothes.id);
                     const isClothesActive = userData?.activeClothes === currentClothes.id;
 
                     return (
-                        <div className="h-[100dvh] w-full bg-slate-900 font-nunito flex flex-col overflow-hidden relative">
+                        <div className="min-h-screen w-full bg-slate-900 font-nunito flex flex-col relative overflow-y-auto overflow-x-hidden">
                             <MagicalBackground />
-
                             <FullscreenButton />
                             
-                            {/* Top Nav (Fixed Height) */}
                             <div className="flex justify-between items-center w-full p-4 lg:px-12 bg-gradient-to-b from-black/80 to-transparent shrink-0 z-20 h-16 md:h-24">
                                 <div className="flex items-center gap-3 md:gap-4">
                                     <div className="bg-slate-800/80 rounded-xl md:rounded-2xl border border-slate-600 shadow-xl backdrop-blur-md hidden sm:flex items-center justify-center overflow-hidden">
@@ -1247,88 +1128,62 @@
                                 </div>
                             </div>
 
-                            {/* Main Hub: Layout Baru (Avatar Atas, Menu Bawah, Lemari Kanan) */}
-                            <div className="flex-1 flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-8 p-4 md:p-8 w-full max-w-7xl mx-auto min-h-0 z-10 overflow-hidden pb-8">
-                                
-                                {/* KIRI: Avatar (Atas) & Menu Action (Bawah) */}
+                            <div className="flex-1 flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-6 lg:gap-8 p-4 md:p-8 w-full max-w-7xl mx-auto z-10 pb-8">
                                 <div className="flex-1 flex flex-col w-full h-full min-w-0 order-2 lg:order-1 gap-4 md:gap-6">
-                                    
-                                    {/* Panggung Avatar Baru (Hero Panel Premium & Ceria) */}
-                                    <div className="flex-1 w-full bg-gradient-to-br from-white/10 via-white/5 to-white/10 backdrop-blur-xl border-2 border-white/30 rounded-[2rem] md:rounded-[3rem] relative flex flex-col items-center justify-center overflow-hidden shadow-[0_15px_40px_rgba(0,0,0,0.4),inset_0_0_30px_rgba(255,255,255,0.15)] group">
+                                    <div className="flex-1 w-full bg-gradient-to-br from-white/10 via-white/5 to-white/10 backdrop-blur-xl border-2 border-white/30 rounded-[2rem] md:rounded-[3rem] relative flex flex-col items-center justify-center overflow-hidden shadow-[0_15px_40px_rgba(0,0,0,0.4),inset_0_0_30px_rgba(255,255,255,0.15)] group min-h-[400px]">
                                         
-                                        {/* Efek Cahaya Holografik Warna-warni (Pink, Cyan, Amber) */}
                                         <div className="absolute -top-20 -left-20 w-72 h-72 bg-pink-500/40 rounded-full blur-[80px] pointer-events-none transition-transform duration-1000 group-hover:scale-110"></div>
                                         <div className="absolute -bottom-20 -right-20 w-72 h-72 bg-cyan-500/40 rounded-full blur-[80px] pointer-events-none transition-transform duration-1000 group-hover:scale-110"></div>
                                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-amber-400/30 rounded-full blur-[80px] pointer-events-none"></div>
 
-                                        {/* Lingkaran Sihir Ceria */}
                                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 md:w-96 md:h-96 border-[3px] border-pink-400/30 rounded-full animate-[spin_12s_linear_infinite] pointer-events-none border-dashed"></div>
                                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 md:w-80 md:h-80 border-4 border-cyan-400/20 rounded-full animate-[spin_15s_linear_infinite_reverse] pointer-events-none border-dotted"></div>
                                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-36 h-36 md:w-64 md:h-64 border border-amber-300/40 rounded-full animate-[spin_8s_linear_infinite] pointer-events-none"></div>
 
-                                        {/* Label Pangkat & Gelar (Diperbarui lebih mewah) */}
                                         <div className="absolute top-4 left-4 md:top-6 md:left-6 bg-white/10 backdrop-blur-md border border-white/30 px-3 md:px-5 py-2 md:py-3 rounded-2xl flex items-center gap-2 md:gap-3 shadow-xl">
-                                            <div className="bg-gradient-to-br from-amber-300 to-orange-500 p-1.5 md:p-2 rounded-xl shadow-inner border border-white/50">
-                                                <Trophy className="w-4 h-4 md:w-6 md:h-6 text-white drop-shadow-md" />
-                                            </div>
+                                            <div className="bg-gradient-to-br from-amber-300 to-orange-500 p-1.5 md:p-2 rounded-xl shadow-inner border border-white/50"><Trophy className="w-4 h-4 md:w-6 md:h-6 text-white drop-shadow-md" /></div>
                                             <div>
                                                 <div className="text-[8px] md:text-xs text-white/80 font-bold uppercase tracking-widest leading-none mb-1">Gelar Saat Ini</div>
                                                 <div className="text-xs md:text-base font-black text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)]">{rank.title}</div>
                                             </div>
                                         </div>
 
-                                        {/* Dekorasi Matematika Melayang (Warna-warni seperti permen) */}
                                         <div className="absolute left-8 bottom-1/4 text-pink-400/70 text-4xl md:text-6xl font-black rotate-12 animate-pulse-slow">×</div>
                                         <div className="absolute right-10 top-1/3 text-cyan-400/70 text-5xl md:text-7xl font-black -rotate-12 animate-pulse-slow" style={{animationDelay: '1s'}}>÷</div>
                                         <div className="absolute left-1/4 top-16 text-amber-400/70 text-3xl md:text-5xl font-black rotate-45 animate-pulse-slow" style={{animationDelay: '2s'}}>+</div>
                                         <div className="absolute right-1/4 bottom-16 text-emerald-400/70 text-4xl md:text-6xl font-black -rotate-45 animate-pulse-slow" style={{animationDelay: '0.5s'}}>−</div>
 
-                                        {/* Avatar & Podium */}
-                                        <div className="flex flex-col items-center justify-center relative z-10 w-full mt-8 md:mt-4">
-                                            {/* Karakter */}
+                                        <div className="flex flex-col items-center justify-center relative z-10 w-full mt-12 md:mt-16">
                                             <div className="relative z-10 filter drop-shadow-[0_15px_25px_rgba(0,0,0,0.6)] hover:-translate-y-2 transition-transform duration-500 cursor-pointer">
                                                 <CharacterAvatar gender={userData.gender} clothesId={userData.activeClothes} size="large" />
                                             </div>
-                                            
-                                            {/* Podium Premium Ceria (Kaca Kristal Bercahaya) */}
                                             <div className="relative -mt-10 md:-mt-16 z-[-1] flex flex-col items-center">
-                                                {/* Permukaan Podium */}
                                                 <div className="w-56 md:w-96 h-14 md:h-24 bg-gradient-to-b from-white/30 to-white/5 rounded-[100%] shadow-[0_20px_40px_rgba(0,0,0,0.6),inset_0_4px_20px_rgba(255,255,255,0.6)] border-t-[3px] md:border-t-4 border-white/80 backdrop-blur-md flex items-center justify-center relative overflow-hidden">
-                                                    {/* Garis Cahaya di Podium */}
                                                     <div className="absolute w-[85%] h-[75%] border-2 border-white/40 rounded-[100%] top-[10%]"></div>
                                                     <div className="absolute w-1/2 h-1/2 bg-amber-300/40 rounded-[100%] blur-xl top-1/4 animate-pulse"></div>
                                                 </div>
-                                                {/* Badan Bawah Podium */}
                                                 <div className="w-48 md:w-[21rem] h-10 md:h-16 bg-gradient-to-b from-white/10 to-transparent rounded-b-[100%] shadow-2xl -mt-6 md:-mt-12 relative z-[-2] border-b border-white/20 backdrop-blur-sm"></div>
                                             </div>
-
-                                            {/* Tombol Pamerkan Jagoan (Screenshot) */}
                                             <button onClick={() => setShowCard(true)} className="relative z-10 mt-6 md:mt-10 bg-gradient-to-r from-pink-500 to-orange-500 hover:from-pink-400 hover:to-orange-400 text-white px-6 md:px-8 py-2 md:py-3 rounded-full font-black text-xs md:text-sm shadow-[0_4px_0_rgb(190,24,93)] active:translate-y-1 active:shadow-none transition-all flex items-center gap-2 uppercase tracking-widest border border-pink-300/50 hover:scale-105">
                                                 <Camera size={18} /> Pamerkan Jagoan
                                             </button>
                                         </div>
                                     </div>
 
-                                    {/* Bagian Bawah: Menu Horizontal (Petualangan, Duel, Misi) */}
-                                    <div className="flex flex-row gap-3 md:gap-4 w-full h-[120px] md:h-[150px] shrink-0">
-                                        {/* Petualangan */}
-                                        <button onClick={() => setView('map')} className="flex-1 bg-gradient-to-br from-emerald-500 to-teal-700 p-2 md:p-4 rounded-2xl md:rounded-[2rem] text-white shadow-[0_6px_0_rgb(4,120,87),0_10px_20px_rgba(16,185,129,0.4)] active:translate-y-2 active:shadow-[0_0px_0_rgb(4,120,87)] transition-all flex flex-col items-center justify-center relative overflow-hidden group border border-emerald-400/50 hover:scale-[1.02]">
+                                    <div className="flex flex-col sm:flex-row gap-3 md:gap-4 w-full shrink-0">
+                                        <button onClick={() => setView('map')} className="flex-1 h-32 md:h-[150px] bg-gradient-to-br from-emerald-500 to-teal-700 p-2 md:p-4 rounded-2xl md:rounded-[2rem] text-white shadow-[0_6px_0_rgb(4,120,87),0_10px_20px_rgba(16,185,129,0.4)] active:translate-y-2 active:shadow-[0_0px_0_rgb(4,120,87)] transition-all flex flex-col items-center justify-center relative overflow-hidden group border border-emerald-400/50 hover:scale-[1.02]">
                                             <div className="absolute -right-4 -bottom-4 opacity-20 group-hover:scale-110 transition-transform duration-700"><MapIcon size={100} /></div>
                                             <div className="w-8 h-8 md:w-12 md:h-12 bg-white/20 rounded-xl flex items-center justify-center mb-1.5 backdrop-blur-md shadow-inner border border-white/30"><Play fill="currentColor" className="w-4 h-4 md:w-6 md:h-6" /></div>
                                             <h3 className="text-xs md:text-xl font-black drop-shadow-md tracking-wide">Petualangan</h3>
                                             <p className="font-bold text-emerald-100 text-[8px] md:text-[10px] mt-0.5 opacity-90 hidden sm:block">Mulai Misi Utama</p>
                                         </button>
-                                        
-                                        {/* Mode Duel */}
-                                        <button onClick={() => setView('multiplayer-setup')} className="flex-1 bg-gradient-to-br from-blue-500 to-indigo-700 p-2 md:p-4 rounded-2xl md:rounded-[2rem] text-white shadow-[0_6px_0_rgb(55,48,163),0_10px_20px_rgba(59,130,246,0.4)] active:translate-y-2 active:shadow-[0_0px_0_rgb(55,48,163)] transition-all flex flex-col items-center justify-center relative overflow-hidden group border border-blue-400/50 hover:scale-[1.02]">
+                                        <button onClick={() => setView('multiplayer-setup')} className="flex-1 h-32 md:h-[150px] bg-gradient-to-br from-blue-500 to-indigo-700 p-2 md:p-4 rounded-2xl md:rounded-[2rem] text-white shadow-[0_6px_0_rgb(55,48,163),0_10px_20px_rgba(59,130,246,0.4)] active:translate-y-2 active:shadow-[0_0px_0_rgb(55,48,163)] transition-all flex flex-col items-center justify-center relative overflow-hidden group border border-blue-400/50 hover:scale-[1.02]">
                                             <div className="absolute -left-4 -bottom-4 opacity-20 group-hover:scale-110 transition-transform duration-700"><Swords size={90} /></div>
                                             <div className="w-8 h-8 md:w-12 md:h-12 bg-white/20 rounded-xl flex items-center justify-center mb-1.5 backdrop-blur-md shadow-inner border border-white/30"><Users fill="currentColor" className="w-4 h-4 md:w-6 md:h-6" /></div>
                                             <h3 className="text-xs md:text-xl font-black drop-shadow-md tracking-wide">Mode Duel</h3>
                                             <p className="font-bold text-indigo-100 text-[8px] md:text-[10px] mt-0.5 opacity-90 hidden sm:block">Tantang Temanmu</p>
                                         </button>
-
-                                        {/* Misi Harian */}
-                                        <button onClick={() => setView('quests')} className="flex-1 bg-gradient-to-br from-cyan-500 to-blue-700 p-2 md:p-4 rounded-2xl md:rounded-[2rem] text-white shadow-[0_6px_0_rgb(30,58,138),0_10px_20px_rgba(6,182,212,0.4)] active:translate-y-2 active:shadow-[0_0px_0_rgb(30,58,138)] transition-all flex flex-col items-center justify-center relative overflow-hidden group border border-cyan-400/50 hover:scale-[1.02]">
+                                        <button onClick={() => setView('quests')} className="flex-1 h-32 md:h-[150px] bg-gradient-to-br from-cyan-500 to-blue-700 p-2 md:p-4 rounded-2xl md:rounded-[2rem] text-white shadow-[0_6px_0_rgb(30,58,138),0_10px_20px_rgba(6,182,212,0.4)] active:translate-y-2 active:shadow-[0_0px_0_rgb(30,58,138)] transition-all flex flex-col items-center justify-center relative overflow-hidden group border border-cyan-400/50 hover:scale-[1.02]">
                                             {userData?.quests?.some(q => q.progress >= q.target && !q.claimed) && <div className="absolute top-2 right-2 md:top-3 md:right-3 w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full border-2 border-white animate-bounce shadow-lg z-20"></div>}
                                             <div className="absolute -right-4 -top-4 opacity-20 group-hover:scale-110 transition-transform duration-700"><CalendarCheck size={90} /></div>
                                             <div className="w-8 h-8 md:w-12 md:h-12 bg-white/20 rounded-xl flex items-center justify-center mb-1.5 backdrop-blur-md shadow-inner border border-white/30"><CalendarCheck fill="currentColor" className="w-4 h-4 md:w-6 md:h-6" /></div>
@@ -1338,27 +1193,17 @@
                                     </div>
                                 </div>
 
-                                {/* KANAN: Lemari Pakaian */}
-                                <div className="flex flex-col gap-4 md:gap-6 w-full lg:w-[320px] shrink-0 h-full justify-center order-1 lg:order-2">
-                                    
-                                    {/* Lemari Pakaian Batik (Single Item Slider) */}
+                                <div className="flex flex-col gap-4 md:gap-6 w-full lg:w-[320px] shrink-0 justify-center order-1 lg:order-2">
                                     <div className="w-full bg-slate-800/80 backdrop-blur-xl border border-slate-600 p-4 md:p-6 rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] relative z-20 flex flex-col items-center">
                                         <div className="flex items-center justify-between mb-4 px-1 w-full">
                                             <h3 className="text-white font-black text-xs md:text-sm flex items-center gap-2 uppercase tracking-widest"><ShoppingCart className="text-amber-400 w-4 h-4"/> Lemari Batik</h3>
                                             <div className="text-[10px] md:text-xs font-bold text-slate-400 bg-slate-900/50 px-2.5 py-1 rounded-lg border border-slate-700">{currentClothesIndex + 1} / {CLOTHES.length}</div>
                                         </div>
-                                        
                                         <div className="relative flex items-center justify-center w-full">
-                                            <button onClick={prevClothes} className="absolute -left-3 md:-left-5 z-10 bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-full shadow-lg border border-slate-500 transition-all active:scale-90">
-                                                <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
-                                            </button>
-
+                                            <button onClick={prevClothes} className="absolute -left-3 md:-left-5 z-10 bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-full shadow-lg border border-slate-500 transition-all active:scale-90"><ChevronLeft className="w-5 h-5 md:w-6 md:h-6" /></button>
                                             <div className="w-full max-w-[220px] bg-slate-900/80 rounded-2xl p-3 md:p-5 border-2 transition-all border-amber-500/50 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] flex flex-col items-center">
                                                 <div className="w-full aspect-square bg-slate-800 rounded-xl mb-4 flex items-center justify-center relative overflow-hidden border border-slate-700 shadow-inner">
-                                                    
-                                                    {/* Manekin 3D Miniatur untuk Katalog Baju */}
                                                     <CharacterAvatar gender={userData.gender} clothesId={currentClothes.id} size="small" />
-
                                                     {!isClothesOwned && <div className="absolute inset-0 bg-black/70 backdrop-blur-[2px] flex items-center justify-center z-30"><Lock className="text-white w-8 h-8 md:w-10 md:h-10 drop-shadow-md"/></div>}
                                                 </div>
                                                 <h4 className="text-xs md:text-base font-black text-white mb-4 truncate w-full text-center drop-shadow-md">{currentClothes.name}</h4>
@@ -1374,10 +1219,7 @@
                                                     )}
                                                 </div>
                                             </div>
-
-                                            <button onClick={nextClothes} className="absolute -right-3 md:-right-5 z-10 bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-full shadow-lg border border-slate-500 transition-all active:scale-90">
-                                                <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
-                                            </button>
+                                            <button onClick={nextClothes} className="absolute -right-3 md:-right-5 z-10 bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-full shadow-lg border border-slate-500 transition-all active:scale-90"><ChevronRight className="w-5 h-5 md:w-6 md:h-6" /></button>
                                         </div>
                                     </div>
                                 </div>
@@ -1385,42 +1227,26 @@
 
                             {/* --- MODAL KARTU IDENTITAS PETUALANG (BISA DI-DOWNLOAD) --- */}
                             {showCard && (() => {
-                                // Mencari data motif baju yang sedang dipakai, fallback ke polos jika tidak ada
                                 const activeClothesData = CLOTHES.find(c => c.id === userData?.activeClothes) || CLOTHES[0];
-                                
-                                // URL Background Motif (Memakai proxy agar html2canvas tidak error CORS)
                                 const fallbackImg = 'https://wsrv.nl/?url=' + encodeURIComponent('https://images.unsplash.com/photo-1590341328520-22e37e90c8a6?auto=format&fit=crop&q=80&w=600');
                                 const cardBgUrl = activeClothesData.pattern && activeClothesData.pattern.includes('github.com') && !activeClothesData.pattern.includes('wsrv.nl') 
                                     ? `https://wsrv.nl/?url=${encodeURIComponent(activeClothesData.pattern)}` 
                                     : (activeClothesData.pattern || fallbackImg);
 
                                 return (
-                                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-fade-in">
-                                    <div className="relative animate-bounce-in flex flex-col items-center max-w-full">
-                                        
-                                        {/* Tombol Tutup (Di luar area kartu yang akan didownload) */}
+                                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-fade-in overflow-y-auto">
+                                    <div className="relative animate-bounce-in flex flex-col items-center max-w-full my-auto">
                                         <button onClick={() => setShowCard(false)} className="absolute -top-12 right-0 md:-right-12 bg-rose-500 text-white p-2 md:p-3 rounded-full hover:bg-rose-600 z-50 shadow-xl border-2 border-white transition-transform hover:scale-110 active:scale-90">
                                             <X size={20} className="md:w-6 md:h-6" />
                                         </button>
 
-                                        {/* BINGKAI KARTU UTAMA (Area Inilah yang Dirender menjadi Gambar) */}
-                                        <div ref={cardRef} className="w-[320px] md:w-[420px] h-[500px] md:h-[620px] rounded-[2rem] md:rounded-[2.5rem] overflow-hidden relative shadow-[0_20px_60px_rgba(0,0,0,0.8)] border-[6px] border-amber-400 bg-slate-900">
-                                            
-                                            {/* Layer 1: Background Motif Batik Terakhir */}
+                                        <div ref={cardRef} className="w-[320px] md:w-[420px] h-[500px] md:h-[620px] rounded-[2rem] md:rounded-[2.5rem] overflow-hidden relative shadow-[0_20px_60px_rgba(0,0,0,0.8)] border-[6px] border-amber-400 bg-slate-900 shrink-0">
                                             <img src={cardBgUrl} crossOrigin="anonymous" className="absolute inset-0 w-full h-full object-cover opacity-100" alt="Batik Background" />
-                                            
-                                            {/* Layer 2: Gradient Overlay Gelap (Diubah transparansinya agar motif batik di belakang LEBIH JELAS) */}
                                             <div className="absolute inset-0 bg-gradient-to-b from-slate-900/30 via-slate-900/70 to-slate-950/95"></div>
-                                            
-                                            {/* Layer 3: Konten Inti Kartu (Tanpa Avatar, Fokus Data Jelas) */}
                                             <div className="relative z-10 h-full flex flex-col items-center justify-between py-8 md:py-10 px-6 text-center">
-                                                
-                                                {/* Header: Trophy Menyala & Gelar */}
                                                 <div className="flex flex-col items-center mt-2">
                                                     <div className="relative w-20 h-20 md:w-28 md:h-28 flex items-center justify-center mb-2">
-                                                        {/* Aura Emas Menyala Berdenyut */}
                                                         <div className="absolute inset-0 bg-amber-400 blur-[30px] opacity-60 rounded-full animate-pulse"></div>
-                                                        {/* Background Bulat Gelap Baru di Belakang Piala */}
                                                         <div className="absolute inset-2 md:inset-3 bg-slate-900 rounded-full border border-amber-500/50 shadow-inner z-0"></div>
                                                         <Trophy className="w-2/3 h-2/3 md:w-3/4 md:h-3/4 text-amber-400 relative z-10" style={{ filter: 'drop-shadow(0 0 10px rgba(251,191,36,0.8))' }} />
                                                     </div>
@@ -1429,20 +1255,16 @@
                                                     <div className="w-16 h-1.5 bg-amber-500 mt-4 rounded-full shadow-[0_0_10px_rgba(251,191,36,0.8)]"></div>
                                                 </div>
 
-                                                {/* Data Pemain (Fokus Pada Data Langsung, Tanpa Label Tambahan) */}
                                                 <div className="w-full flex flex-col gap-4 md:gap-6 my-auto px-1 md:px-2">
                                                     <div>
-                                                        {/* Teks tanpa line-clamp agar tidak terpotong (break-words whitespace-normal) */}
                                                         <p className="text-2xl md:text-3xl font-black text-white leading-snug break-words whitespace-normal px-2" style={{ textShadow: '0 4px 8px rgba(0,0,0,1)' }}>{userData.name}</p>
                                                     </div>
-                                                    
                                                     <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 md:p-6 border border-white/20 shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex flex-col gap-1.5 md:gap-2">
                                                         <p className="text-lg md:text-xl font-black text-emerald-400 break-words whitespace-normal leading-tight" style={{ textShadow: '0 3px 6px rgba(0,0,0,1)' }}>{userData.school}</p>
                                                         <p className="text-sm md:text-base font-bold text-slate-100 break-words whitespace-normal" style={{ textShadow: '0 2px 4px rgba(0,0,0,1)' }}>{userData.province}</p>
                                                     </div>
                                                 </div>
 
-                                                {/* Skor Poin Akhir (Margin & Padding diperbesar agar angka tidak terpotong) */}
                                                 <div className="mt-4 md:mt-6 bg-slate-900/60 pt-5 pb-6 px-4 md:pt-6 md:pb-8 rounded-2xl border border-amber-500/30 w-full shadow-[0_0_20px_rgba(0,0,0,0.5)]">
                                                     <p className="text-[10px] md:text-xs font-bold text-slate-300 uppercase tracking-widest mb-2" style={{ textShadow: '0 2px 5px rgba(0,0,0,1)' }}>Total Skor Pencapaian</p>
                                                     <p className="text-5xl md:text-6xl font-black text-amber-400 leading-normal" style={{ textShadow: '0 5px 15px rgba(0,0,0,1)' }}>
@@ -1452,24 +1274,17 @@
                                             </div>
                                         </div>
 
-                                        {/* Tombol Aksi Download (Di Luar Kartu, tidak ikut ke-screenshot) */}
-                                        <button 
-                                            onClick={handleDownloadCard} 
-                                            disabled={isDownloading}
-                                            className="mt-6 md:mt-8 w-full max-w-[320px] md:max-w-[420px] bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed text-white py-4 md:py-5 rounded-xl md:rounded-2xl font-black text-sm md:text-lg shadow-[0_6px_0_rgb(4,120,87)] active:translate-y-1.5 active:shadow-none transition-all uppercase tracking-widest flex items-center justify-center gap-2 border border-emerald-300/50"
-                                        >
+                                        <button onClick={handleDownloadCard} disabled={isDownloading} className="mt-6 md:mt-8 w-full max-w-[320px] md:max-w-[420px] bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed text-white py-4 md:py-5 rounded-xl md:rounded-2xl font-black text-sm md:text-lg shadow-[0_6px_0_rgb(4,120,87)] active:translate-y-1.5 active:shadow-none transition-all uppercase tracking-widest flex items-center justify-center gap-2 border border-emerald-300/50 shrink-0">
                                             {isDownloading ? (
                                                 <span className="flex items-center gap-2"><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Menyiapkan Gambar...</span>
                                             ) : (
                                                 <span className="flex items-center gap-2"><Camera size={20} /> Download Kartu (PNG)</span>
                                             )}
                                         </button>
-
                                     </div>
                                 </div>
                                 );
                             })()}
-
                         </div>
                     );
                 }
@@ -1477,7 +1292,7 @@
                 if (view === 'map') {
                     const unlockedLvl = userData?.unlockedLevel || 1;
                     return (
-                        <div className="min-h-[100dvh] w-full bg-slate-900 p-4 pt-28 md:p-8 md:pt-32 font-nunito flex flex-col items-center justify-start overflow-y-auto relative">
+                        <div className="min-h-screen w-full bg-slate-900 p-4 pt-28 md:p-8 md:pt-32 font-nunito flex flex-col items-center justify-start overflow-y-auto relative">
                             <MagicalBackground />
                             <FullscreenButton />
                             <div className="w-full max-w-lg md:max-w-3xl lg:max-w-5xl pb-10 relative z-10">
@@ -1527,7 +1342,7 @@
                     const islandBatiks = BATIKS.filter(b => b.islandId === level);
 
                     return (
-                        <div className="min-h-[100dvh] w-full bg-slate-900 p-4 pt-28 md:p-8 md:pt-32 font-nunito flex flex-col items-center justify-start overflow-y-auto relative">
+                        <div className="min-h-screen w-full bg-slate-900 p-4 pt-28 md:p-8 md:pt-32 font-nunito flex flex-col items-center justify-start overflow-y-auto relative">
                             <MagicalBackground />
                             <FullscreenButton />
                             <div className="w-full max-w-lg md:max-w-4xl lg:max-w-6xl pb-10 relative z-10">
@@ -1572,7 +1387,7 @@
 
                 if (view === 'quests') {
                     return (
-                        <div className="min-h-[100dvh] w-full bg-slate-900 p-4 pt-28 md:p-8 md:pt-32 font-nunito flex flex-col items-center justify-start overflow-y-auto relative">
+                        <div className="min-h-screen w-full bg-slate-900 p-4 pt-28 md:p-8 md:pt-32 font-nunito flex flex-col items-center justify-start overflow-y-auto relative">
                             <MagicalBackground />
                             <FullscreenButton />
                             <div className="w-full max-w-lg md:max-w-4xl lg:max-w-5xl pb-10 relative z-10">
@@ -1619,7 +1434,7 @@
 
                 if (view === 'multiplayer-setup') {
                     return (
-                        <div className="min-h-[100dvh] w-full bg-slate-900 p-4 pt-28 md:p-8 md:pt-32 font-nunito flex flex-col items-center justify-start overflow-y-auto relative">
+                        <div className="min-h-screen w-full bg-slate-900 p-4 pt-28 md:p-8 md:pt-32 font-nunito flex flex-col items-center justify-start overflow-y-auto relative">
                             <MagicalBackground />
                             <FullscreenButton />
                             <div className="bg-slate-800 p-5 md:p-10 rounded-3xl md:rounded-[2rem] shadow-2xl border border-slate-700 w-full max-w-lg md:max-w-3xl mb-10 relative z-10">
@@ -1686,7 +1501,6 @@
                                 <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full relative">
                             {!player.activeBlock ? (
                                 <div className="w-full max-w-[min(100%,_32vh)] md:max-w-[350px] aspect-square bg-gray-800/80 p-1.5 md:p-4 rounded-2xl md:rounded-[2rem] shadow-xl border-2 md:border-4 border-gray-700 backdrop-blur relative">
-                                    {/* Perbaikan tanda kutip pada url background */}
                                     <div className="absolute inset-1.5 md:inset-4 rounded-xl md:rounded-2xl bg-cover bg-center opacity-40" style={{ backgroundImage: `url('${BATIKS[0].bgImage}')`}}></div>
                                     <div className="grid grid-cols-4 grid-rows-4 gap-1 w-full h-full relative z-10">
                                         {player.grid.map(b => (
@@ -1728,7 +1542,7 @@
                     };
 
                     return (
-                        <div className="fixed inset-0 bg-gray-900 flex flex-col md:flex-row font-nunito overflow-hidden" style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}>
+                        <div className="min-h-screen w-full bg-gray-900 flex flex-col md:flex-row font-nunito overflow-y-auto relative" style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}>
                             <FullscreenButton />
                             
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-800 border-2 md:border-4 border-gray-950 px-3 md:px-6 py-1.5 md:py-2 rounded-full z-50 flex items-center gap-1.5 md:gap-3 shadow-2xl shadow-black/50">
@@ -1765,7 +1579,7 @@
                     const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
 
                     return (
-                        <div className={`fixed inset-0 flex flex-col items-center font-nunito p-2 md:p-6 lg:p-8 transition-colors duration-500 ${bgClass}`} style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}>
+                        <div className={`min-h-screen w-full flex flex-col items-center font-nunito p-2 md:p-6 lg:p-8 transition-colors duration-500 overflow-y-auto relative ${bgClass}`} style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}>
                             <FullscreenButton />
                             {floatingTexts.map(ft => ( <FloatingText key={ft.id} text={ft.text} x={ft.x} y={ft.y} onComplete={() => setFloatingTexts(prev => prev.filter(t => t.id !== ft.id))} /> ))}
 
@@ -1795,43 +1609,41 @@
                                 </div>
                             </div>
 
-                        {/* Game Area */}
-                        <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 w-full overflow-hidden gap-2">
-                            {!selectedBlock ? (
-                                <div className={`shadow-xl relative border-4 md:border-8 rounded-2xl md:rounded-[2rem] p-1.5 md:p-4 w-full max-w-[min(100%,_45vh)] lg:max-w-[min(100%,_65vh)] aspect-square shrink-0 ${isFever ? 'bg-orange-600 border-yellow-400' : 'bg-gray-800 border-gray-700'}`}>
-                                    {/* Perbaikan tanda kutip pada url background motif batik */}
-                                    <div className="absolute inset-1.5 md:inset-4 rounded-xl md:rounded-2xl bg-cover bg-center opacity-80" style={{ backgroundImage: `url('${activeBatik.bgImage}')`}}></div>
-                                    <div className="grid grid-cols-4 grid-rows-4 gap-1 md:gap-2 w-full h-full relative z-10">
-                                        {grid.map(b => (
-                                            <button key={b.id} onPointerDown={(e) => { e.preventDefault(); if(b.active) { setSelectedBlock(b); setInputAnswer(''); setFeedback(null); }}}
-                                                    className={`rounded-lg md:rounded-2xl transition-all transform flex items-center justify-center font-bold text-xl md:text-4xl shadow-[0_3px_0_rgba(0,0,0,0.3)] md:shadow-[0_6px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-1 md:active:translate-y-1.5 select-none
-                                                        ${!b.active ? 'opacity-0 pointer-events-none scale-50' : 'opacity-100 scale-100'}
-                                                        ${b.isSpecial ? 'bg-gradient-to-br from-yellow-400 to-amber-500' : (isFever ? 'bg-gradient-to-br from-red-500 to-orange-500' : 'bg-gradient-to-br from-blue-400 to-blue-600')}`}>
-                                                    {b.active && (b.isSpecial ? <span className="text-white drop-shadow-md">★</span> : <span className="text-white/30 text-lg md:text-3xl">?</span>)}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="bg-gray-800 rounded-2xl md:rounded-[2rem] p-4 md:p-8 shadow-2xl w-[95%] max-w-sm md:max-w-xl border-2 md:border-4 border-gray-600 flex flex-col justify-center h-[90%] md:h-auto shrink-0">
-                                        <div className="flex justify-between items-center mb-4 md:mb-8">
-                                            <button onPointerDown={(e) => { e.preventDefault(); setSelectedBlock(null); }} className="text-gray-400 bg-gray-700 p-2 md:p-4 rounded-full hover:bg-gray-600 select-none"><ArrowLeft className="w-5 h-5 md:w-8 md:h-8"/></button>
-                                            <div className="text-3xl sm:text-4xl md:text-6xl font-black text-white tracking-wider text-center flex-1">
-                                                {selectedBlock.q.text} = <span className={`inline-block min-w-[60px] md:min-w-[100px] text-center border-b-4 md:border-b-8 pb-1 ${feedback === 'wrong' ? 'border-red-500 text-red-500' : 'border-blue-500 text-blue-400'}`}>{inputAnswer || '?'}</span>
+                            {/* Game Area (Bebas Scroll ke Bawah jika kepanjangan) */}
+                            <div className="flex-1 flex flex-col justify-center items-center w-full gap-2 z-10">
+                                {!selectedBlock ? (
+                                    <div className={`shadow-xl relative border-4 md:border-8 rounded-2xl md:rounded-[2rem] p-1.5 md:p-4 w-full max-w-[min(100%,_45vh)] lg:max-w-[min(100%,_65vh)] aspect-square shrink-0 ${isFever ? 'bg-orange-600 border-yellow-400' : 'bg-gray-800 border-gray-700'}`}>
+                                        <div className="absolute inset-1.5 md:inset-4 rounded-xl md:rounded-2xl bg-cover bg-center opacity-80" style={{ backgroundImage: `url('${activeBatik.bgImage}')`}}></div>
+                                        <div className="grid grid-cols-4 grid-rows-4 gap-1 md:gap-2 w-full h-full relative z-10">
+                                            {grid.map(b => (
+                                                <button key={b.id} onPointerDown={(e) => { e.preventDefault(); if(b.active) { setSelectedBlock(b); setInputAnswer(''); setFeedback(null); }}}
+                                                        className={`rounded-lg md:rounded-2xl transition-all transform flex items-center justify-center font-bold text-xl md:text-4xl shadow-[0_3px_0_rgba(0,0,0,0.3)] md:shadow-[0_6px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-1 md:active:translate-y-1.5 select-none
+                                                            ${!b.active ? 'opacity-0 pointer-events-none scale-50' : 'opacity-100 scale-100'}
+                                                            ${b.isSpecial ? 'bg-gradient-to-br from-yellow-400 to-amber-500' : (isFever ? 'bg-gradient-to-br from-red-500 to-orange-500' : 'bg-gradient-to-br from-blue-400 to-blue-600')}`}>
+                                                        {b.active && (b.isSpecial ? <span className="text-white drop-shadow-md">★</span> : <span className="text-white/30 text-lg md:text-3xl">?</span>)}
+                                                    </button>
+                                                ))}
                                             </div>
                                         </div>
-                                        <div className="flex justify-center gap-2 md:gap-6 mb-4 md:mb-8">
-                                            <button onPointerDown={(e) => { e.preventDefault(); if(powerups?.hint>0){ setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, hint: p.hint-1}))} }} disabled={powerups?.hint <= 0} className="flex items-center gap-1 md:gap-2 bg-green-500/20 border-2 border-green-500/50 text-green-400 px-4 py-2 md:px-6 md:py-3 rounded-full font-bold text-xs md:text-lg disabled:opacity-50 select-none">
-                                                <Lightbulb className="w-4 h-4 md:w-5 md:h-5"/> Petunjuk ({powerups?.hint || 0})
-                                            </button>
-                                            <button onPointerDown={(e) => { e.preventDefault(); if(powerups?.bomb>0){ updateQuestProgress('use_bomb'); setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, bomb: p.bomb-1})); setTimeout(()=>submitAnswer(e), 100); } }} disabled={powerups?.bomb <= 0} className="flex items-center gap-1 md:gap-2 bg-red-500/20 border-2 border-red-500/50 text-red-400 px-4 py-2 md:px-6 md:py-3 rounded-full font-bold text-xs md:text-lg disabled:opacity-50 select-none">
-                                                <Bomb className="w-4 h-4 md:w-5 md:h-5"/> Bom ({powerups?.bomb || 0})
-                                            </button>
+                                    ) : (
+                                        <div className="bg-gray-800 rounded-2xl md:rounded-[2rem] p-4 md:p-8 shadow-2xl w-[95%] max-w-sm md:max-w-xl border-2 md:border-4 border-gray-600 flex flex-col justify-center h-[90%] md:h-auto shrink-0 mb-8">
+                                            <div className="flex justify-between items-center mb-4 md:mb-8">
+                                                <button onPointerDown={(e) => { e.preventDefault(); setSelectedBlock(null); }} className="text-gray-400 bg-gray-700 p-2 md:p-4 rounded-full hover:bg-gray-600 select-none"><ArrowLeft className="w-5 h-5 md:w-8 md:h-8"/></button>
+                                                <div className="text-3xl sm:text-4xl md:text-6xl font-black text-white tracking-wider text-center flex-1">
+                                                    {selectedBlock.q.text} = <span className={`inline-block min-w-[60px] md:min-w-[100px] text-center border-b-4 md:border-b-8 pb-1 ${feedback === 'wrong' ? 'border-red-500 text-red-500' : 'border-blue-500 text-blue-400'}`}>{inputAnswer || '?'}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-center gap-2 md:gap-6 mb-4 md:mb-8">
+                                                <button onPointerDown={(e) => { e.preventDefault(); if(powerups?.hint>0){ setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, hint: p.hint-1}))} }} disabled={powerups?.hint <= 0} className="flex items-center gap-1 md:gap-2 bg-green-500/20 border-2 border-green-500/50 text-green-400 px-4 py-2 md:px-6 md:py-3 rounded-full font-bold text-xs md:text-lg disabled:opacity-50 select-none">
+                                                    <Lightbulb className="w-4 h-4 md:w-5 md:h-5"/> Petunjuk ({powerups?.hint || 0})
+                                                </button>
+                                                <button onPointerDown={(e) => { e.preventDefault(); if(powerups?.bomb>0){ updateQuestProgress('use_bomb'); setInputAnswer(selectedBlock.q.ans.toString()); setPowerups(p=>({...p, bomb: p.bomb-1})); setTimeout(()=>submitAnswer(e), 100); } }} disabled={powerups?.bomb <= 0} className="flex items-center gap-1 md:gap-2 bg-red-500/20 border-2 border-red-500/50 text-red-400 px-4 py-2 md:px-6 md:py-3 rounded-full font-bold text-xs md:text-lg disabled:opacity-50 select-none">
+                                                    <Bomb className="w-4 h-4 md:w-5 md:h-5"/> Bom ({powerups?.bomb || 0})
+                                                </button>
+                                            </div>
+                                            {renderNumpad(inputAnswer, setInputAnswer, submitAnswer, false, false)}
                                         </div>
-                                        {/* Parameter "isCompact" diubah jadi false agar Numpad menggunakan skala ekstra besar */}
-                                        {renderNumpad(inputAnswer, setInputAnswer, submitAnswer, false, false)}
-                                    </div>
-                                )}
+                                    )}
                             </div>
                         </div>
                     );
@@ -1842,9 +1654,8 @@
                     const currentIsland = ISLANDS[level - 1] || ISLANDS[0];
 
                     return (
-                        <div className="min-h-[100dvh] flex flex-col items-center justify-center p-4 md:p-10 font-nunito bg-cover bg-center bg-no-repeat relative overflow-y-auto" style={{ backgroundImage: "url('https://github.com/user-attachments/assets/eea7c0b5-3b65-4199-8efd-9aa7c27a64c9')" }}>
+                        <div className="min-h-screen flex flex-col items-center justify-center p-4 md:p-10 font-nunito bg-cover bg-center bg-no-repeat relative overflow-y-auto" style={{ backgroundImage: "url('https://github.com/user-attachments/assets/eea7c0b5-3b65-4199-8efd-9aa7c27a64c9')" }}>
                             <div className="absolute inset-0 bg-black/60 pointer-events-none"></div>
-                            <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap'); .font-nunito { font-family: 'Nunito', sans-serif; }`}</style>
                             <div className="bg-slate-900/90 backdrop-blur-md p-6 md:p-12 rounded-[2rem] md:rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] max-w-sm md:max-w-2xl w-full text-center border-2 md:border-4 border-slate-700 relative z-10 animate-bounce-in my-auto">
                                 <div className="text-6xl md:text-9xl mb-4 md:mb-6">{isWin ? '🏆' : (timeLeft <= 0 ? '⏰' : '💥')}</div>
                                 <h2 className={`text-2xl md:text-5xl font-black mb-2 md:mb-4 drop-shadow-md ${isWin ? 'text-emerald-400' : 'text-red-500'}`}>
@@ -1861,7 +1672,6 @@
                                     </div>
                                 </div>
 
-                                {/* Penjelasan Motif Batik Tunggal yang Baru Diselesaikan */}
                                 {isWin && (
                                     <div className="bg-slate-800/80 rounded-2xl p-4 md:p-6 mb-6 md:mb-8 border border-emerald-500/30 shadow-[inset_0_0_20px_rgba(16,185,129,0.1)] text-left">
                                         <h3 className="text-emerald-400 font-black text-xs md:text-base mb-3 border-b border-slate-600 pb-2 uppercase tracking-widest">
@@ -1896,24 +1706,17 @@
                     );
                 }
 
-                // Default Fallback
                 return <div className="p-4 text-center font-nunito">Memuat Komponen Game...</div>;
             };
 
             return (
                 <React.Fragment>
-                    {/* Tombol Speaker Pojok Kiri Atas Muncul di Semua Layar (Kecuali Loading) */}
                     {view !== 'loading' && (
-                        <button 
-                            onClick={() => setIsMuted(!isMuted)} 
-                            className="fixed top-4 left-4 z-[9900] p-2 md:p-3 bg-slate-800/80 backdrop-blur border border-slate-600 text-white rounded-full shadow-lg hover:bg-slate-700 transition-all cursor-pointer"
-                            title={isMuted ? "Nyalakan Musik" : "Matikan Musik"}
-                        >
+                        <button onClick={() => setIsMuted(!isMuted)} className="fixed top-4 left-4 z-[9900] p-2 md:p-3 bg-slate-800/80 backdrop-blur border border-slate-600 text-white rounded-full shadow-lg hover:bg-slate-700 transition-all cursor-pointer">
                             {isMuted ? <VolumeX size={20} className="md:w-6 md:h-6 text-rose-400" /> : <Volume2 size={20} className="md:w-6 md:h-6 text-emerald-400" />}
                         </button>
                     )}
 
-                    {/* Pop Up Pengunci Layar untuk HP/Tablet */}
                     {showOrientationPrompt && (
                         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
                             <div className="bg-slate-800 rounded-[2rem] p-6 md:p-8 max-w-sm w-full text-center shadow-2xl border-2 md:border-4 border-indigo-500/50 animate-bounce-in relative overflow-hidden">
@@ -1924,17 +1727,10 @@
                                     Untuk pengalaman bermain terbaik, mari masuk ke mode Layar Penuh dan kunci orientasi menjadi mendatar (Landscape) agar layar tidak berubah saat HP miring.
                                 </p>
                                 <div className="flex flex-col gap-3 relative z-10">
-                                    <button onClick={async () => {
-                                        await toggleFullscreenAndLock();
-                                        setShowOrientationPrompt(false);
-                                        setView('login');
-                                    }} className="w-full bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-400 hover:to-blue-400 text-white py-3 md:py-4 rounded-xl font-black text-sm md:text-lg shadow-[0_4px_0_rgb(49,46,129)] active:translate-y-1 active:shadow-none transition-all uppercase tracking-wider">
+                                    <button onClick={async () => { await toggleFullscreenAndLock(); setShowOrientationPrompt(false); setView('login'); }} className="w-full bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-400 hover:to-blue-400 text-white py-3 md:py-4 rounded-xl font-black text-sm md:text-lg shadow-[0_4px_0_rgb(49,46,129)] active:translate-y-1 active:shadow-none transition-all uppercase tracking-wider">
                                         Kunci & Lanjutkan
                                     </button>
-                                    <button onClick={() => {
-                                        setShowOrientationPrompt(false);
-                                        setView('login');
-                                    }} className="w-full bg-slate-700 text-slate-300 py-3 rounded-xl font-bold text-xs md:text-sm hover:bg-slate-600 transition-all uppercase">
+                                    <button onClick={() => { setShowOrientationPrompt(false); setView('login'); }} className="w-full bg-slate-700 text-slate-300 py-3 rounded-xl font-bold text-xs md:text-sm hover:bg-slate-600 transition-all uppercase">
                                         Lewati (Bermain Biasa)
                                     </button>
                                 </div>
@@ -1974,10 +1770,7 @@
                                     </ul>
                                 </div>
 
-                                <button 
-                                    onClick={() => setDailyPopup({ ...dailyPopup, show: false })}
-                                    className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white py-3 md:py-4 rounded-lg md:rounded-xl font-black text-base md:text-xl shadow-[0_4px_0_rgb(180,83,9)] active:translate-y-1 active:shadow-none transition-all uppercase tracking-wider relative z-10"
-                                >
+                                <button onClick={() => setDailyPopup({ ...dailyPopup, show: false })} className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white py-3 md:py-4 rounded-lg md:rounded-xl font-black text-base md:text-xl shadow-[0_4px_0_rgb(180,83,9)] active:translate-y-1 active:shadow-none transition-all uppercase tracking-wider relative z-10">
                                     Ambil Hadiah!
                                 </button>
                             </div>
